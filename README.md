@@ -8,6 +8,6 @@ The package deploys a special dynamic programming scheme described in a manuscri
 
 #Installation
 
-`library(devtools)
+`library(devtools)`
 
-install_github("wiscstatman/GammaRank")`
+`install_github("wiscstatman/GammaRank")`
