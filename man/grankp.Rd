@@ -40,6 +40,7 @@ log probability  of the ordering event
 }
 \references{ 
  \url{http://projecteuclid.org/euclid.aos/1284988405}
+ }
 \author{
 Michael Newton \url{http://www.stat.wisc.edu/~newton}
 }
