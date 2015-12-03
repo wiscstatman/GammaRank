@@ -31,7 +31,7 @@ grankp(shapes, rates = rep(1, length(shapes)), log.p = TRUE)
 \details{
 When $k=2$ the computation is a simple Beta cumulative probability;
 when $k>2$ the code uses a negative-binomial representation of the
-event (Newton and Chung, 2010, Annals of Statistics, 38, 3217-3244), and a hidden-markov-chain-style
+event, and a hidden-markov-chain-style
 Viterbi and backward recursion (Newton, in prep).  The calculation
 is central to clustering by gamma-ranking. 
 }
