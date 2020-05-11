@@ -1,0 +1,7 @@
+ Recall that a gamma distribution 
+with shape $a>0$ and rate $\lambda >0$, denoted Gamma$(a,\lambda)$,
+has probability density:
+ \begin{eqnarray*}
+ p(z) = \frac{ \lambda^{a} z^{a-1} \exp\{ -z \lambda \} }{\Gamma(a) },
+ \qquad z>0.
+\end{eqnarray*}

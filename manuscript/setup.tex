@@ -1,0 +1,77 @@
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\usepackage{amsxtra}
+\usepackage{paralist}
+%\usepackage[longnamesfirst]{natbib}
+\usepackage{bm}
+\usepackage{natbib}
+%\usepackage[pdftex]{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{ifthen}
+%\usepackage[pdftex]{hyperref}
+\usepackage[usenames]{color}
+
+\newboolean{blinded}
+\setboolean{blinded}{false}
+\newcommand{\blind}[2]{%
+  \ifthenelse{\boolean{blinded}}{#2}{#1}%
+}
+
+% For natbib package
+\bibpunct{(}{)}{;}{a}{}{,}
+
+\newcommand{\prescrunch}{\vspace{-1ex}}
+\newcommand{\postscrunch}{\vspace{-2ex}}
+\newcommand{\doublespaced}{1.80}
+\renewcommand{\baselinestretch}{\doublespaced}
+\usepackage[hmargin=1.5in,vmargin=1.5in]{geometry}
+%\usepackage[textwidth=324pt,showframe]{geometry}
+%\renewcommand{\baselinestretch}{1.0}
+%\setlength{\textwidth}{27pc}
+
+\newenvironment{changemargin}[2]{%
+  \begin{list}{}{%
+    \setlength{\topsep}{0pt}%
+    \setlength{\leftmargin}{#1}%
+    \setlength{\rightmargin}{#2}%
+    \setlength{\listparindent}{\parindent}%
+    \setlength{\itemindent}{\parindent}%
+    \setlength{\parsep}{\parskip}%
+  }%
+  \item[]%
+}{
+  \end{list}
+}
+
+
+
+\AtBeginDocument{
+  \DeclareGraphicsExtensions{.pdf,.png,.jpg}
+  \graphicspath{{fig/}}
+}
+
+\hyphenation{BEMMA}
+
+\newcommand{\comset}[1]{\label{comment_#1}}
+\newcommand{\comref}[1]{\pageref{comment_#1}}
+\newcommand{\secref}[1]{Section \ref{sec_#1}}
+\newcommand{\secsref}[2]{Sections \ref{sec_#1} and \ref{sec_#2}}
+\newcommand{\eqnref}[1]{(\ref{eqn_#1})}
+\newcommand{\eqnsref}[2]{(\ref{eqn_#1}) and (\ref{eqn_#2})}
+\newcommand{\tabref}[1]{Table \ref{tab_#1}}
+\newcommand{\tabsref}[2]{Tables \ref{tab_#1} and \ref{tab_#2}}
+\newcommand{\figref}[1]{Figure \ref{fig_#1}}
+\newcommand{\figsref}[2]{Figures \ref{fig_#1} and \ref{fig_#2}}
+\newcommand{\apxref}[1]{Appendix \ref{apx_#1}}
+\newcommand{\heading}[1]{\noindent\textbf{\Large #1}\vspace{2ex}}
+
+\newcommand{\mass}{\eta_0}
+\newcommand{\abs}[1]{|#1|}
+\newcommand{\given}{\,|}
+\newcommand{\partition}{\bm{\pi}}
+
+\pagestyle{myheadings}{\markright{}}
+\def\blfootnote{\xdef\@thefnmark{}\@footnotetext}
+
+\newtheorem{theorem}{Theorem}

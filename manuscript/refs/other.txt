@@ -1,0 +1,14 @@
+
+http://www.jstor.org/pss/2345433
+
+ Flinger and Verducci (1986) Distance based ranking models, JRSSB 48, 359-69.
+
+http://www.cs.cmu.edu/~lafferty/pub/cranking.ps
+
+Cranking: combined rankings using conditional probability models on
+ permutations ... manuscript
+
+Sun et al. Visualizing differences in web search algorithms using the
+	expected weighted hoeffding distance.
+
+ http://fodava.gatech.edu/files/reports/FODAVA-09-22.pdf

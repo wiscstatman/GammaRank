@@ -1,0 +1,1815 @@
+% Template for the submission to:
+%   The Annals of Probability           [aop]
+%   The Annals of Applied Probability   [aap]
+%   The Annals of Statistics            [aos] 
+%   The Annals of Applied Statistics    [aoas]
+%
+%Author: In this template, the places where you need to add information
+%        (or delete line) are indicated by {???}.  Mostly the information
+%        required is obvious, but some explanations are given in lines starting
+%Author:
+%All other lines should be ignored.  After editing, there should be
+%no instances of ??? after this line.
+
+% use option [preprint] to remove info line at bottom
+% journal options: aop,aap,aos,aoas
+% natbib option: authoryear
+\documentclass[aos,preprint]{imsart}
+
+\usepackage{amsthm,amsmath,natbib}
+\usepackage{amssymb,graphicx}
+\RequirePackage[dvips]{hyperref}
+
+% use this package if hyperref and natbib is used:
+%\RequirePackage{hypernat}
+
+% provide arXiv number if available:
+%\arxiv{math.PR/0000000}
+
+% put your definitions there:
+\startlocaldefs
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\endlocaldefs
+
+\begin{document}
+
+\begin{frontmatter}
+
+% "Title of the paper"
+%\title{Gamma rankings for clustering in multi-group expression analysis}
+%\runtitle{Gamma rankings}
+\title{Gamma-based clustering via ordered means with application to 
+    gene-expression analysis}
+\runtitle{Gamma ranking}
+
+% indicate corresponding author with \corref{}
+% \author{\fnms{John} \snm{Smith}\corref{}\ead[label=e1]{smith@foo.com}\thanksref{t1}}
+% \thankstext{t1}{Thanks to somebody} 
+% \address{line 1\\ line 2\\ printead{e1}}
+% \affiliation{Some University}
+
+\author{\fnms{Michael A.} \snm{Newton}\ead[label=e1]{newton@stat.wisc.edu}}
+\address{\printead{e1}}
+\and
+\author{\fnms{Lisa M.} \snm{Chung}\ead[label=e2]{lchung@stat.wisc.edu}}
+\address{\printead{e2}}
+\affiliation{University of Wisconsin at Madison}
+\runauthor{Newton, Chung}
+\begin{abstract}
+Discrete mixture models provide a well-known basis for
+  effective clustering algorithms, although technical challenges have limited
+ their scope.  In the context of gene-expression data analysis, 
+a model is presented
+  that mixes over a finite catalog of structures, each one representing
+equality and inequality constraints among latent expected values.  
+Computations depend on  the probability that
+independent gamma-distributed variables attain each of their possible
+orderings.  Each ordering event is equivalent to an event in independent
+negative-binomial random variables, and this finding guides a 
+ dynamic-programming calculation.   The structuring of mixture-model 
+components according to
+constraints among latent means leads to strict convcavity of
+the mixture log likelihood.  In addition to its beneficial numerical
+properties, the clustering method shows promising results in an
+empirical study.
+\end{abstract}
+
+%\begin{keyword}[class=AMS]
+%\kwd[Primary ]{}
+%\kwd{}
+%\kwd[; secondary ]{}
+%\end{keyword}
+
+\begin{keyword}
+\kwd{gamma ranking}
+\kwd{mixture model}
+\kwd{next generation sequencing}
+\kwd{Poisson embedding}
+\kwd{rank probability}
+\end{keyword}
+
+\end{frontmatter}
+
+
+
+\section{Introduction}
+
+A common problem in statistical genomics is how to 
+organize expression 
+ data from genes that have been determined to exhibit differential
+expression relative to various cellular states.  Cells
+in a time-course experiment may exhibit such genes, as may cells
+in any sort of designed experiment or observational study where expression
+alterations are being examined (e.g., Parmigiani {\em et al.}, 2003; Speed, 2004).
+ In the event that the error-rate-controlled
+list of significantly altered genes is small, the post-processing problem 
+amounts to inspecting observed patterns of expression, investigating
+what is known about the relatively few genes identified, and planning follow-up 
+ experiments as necessary.  However, it is all too common that hundreds or
+even thousands of genes are detected as significantly altered in their 
+expression pattern relative to the cellular states.  Post-processing
+these non-null genes presents a substantial statistical
+problem. Difficulties are compounded in the multi-group
+ setting because a
+ gene can be non-null in many different ways (Jensen {\em et al.} 2009).
+
+ Ever since Eisen {\em et al.} (1998), clustering methods have been
+ used to organize expression data.  Thalamuthu {\em et al.} (2006) provides
+ a recent
+ perspective.  Clustering methods are often applied in order to partition
+ non-null genes which have been 
+ identified in differential expression analysis 
+ (e.g., Campbell {\em et al.} 2006; Grasso {\em et al.} 2008).
+  Popular approaches
+ are informative but not completely satisfactory.
+   There are idiosyncratic problems, like
+ how to select the number of clusters, but there is also the  subtle issue that
+ the clusters identified by most algorithms are anonymous: 
+ each cluster is defined only by similarity of its contents
+rather than by some external pattern that its genes may be approximating.
+  Anonymity may contribute to
+ technical problems, such as that the objective function being minimized is not
+ convex, and that realized clusters have a more narrow size distribution
+ than is warranted by the biological system. 
+
+ Model-based clustering
+ treats data as arising from a mixture of component distributions, and then
+ forms clusters by assigning each data point to its most probable 
+ component   (e.g., Titterington {\em et al.} 1985; 
+ McLachlan and Basford, 1988). For example,
+ the \verb+mclust+ procedure is based 
+ on mixtures of Gaussian components (Fraley and Raftery, 2002); 
+  the popular \verb+K-means+ algorithm
+ is implicitly so based (Hastie {\em et al.}, 2001, page 463).
+ There is considerable flexibility in model-based clustering, though
+ technical challenges have also affected its development: the likelihood
+ function is often multi-modal;  identifiability
+ can be difficult to establish
+ (e.g., Redner and Walker, 1984; Holzmann {\em et al.}, 2006);
+  and even where constraints may create identifiability, there can be a problem
+ of label-switching during Bayesian inference (Stephens, 2000).
+ Some sophisticated model-based clustering methods have been developed for
+ gene expression (e.g., Medvedovic {\em et al.}, 2004). Beyond empirical
+ studies it is difficult to determine properties of such approaches, and their
+ reliance on Monte Carlo computation is somewhat limiting. 
+
+ Here a model-based clustering method is developed
+ that aims to support multi-group gene-expression analysis and
+ possibly other applications.
+ The method, called gamma ranking, 
+  places genes in a cluster if their
+expression patterns commonly approximate one element from a finite 
+ catalog of possible structures, in contrast to anonymous methods 
+ (Section~2).
+ Under certain conditions the component distributions are linearly independent
+ functions -- each one associated with a structure in the finite catalog --
+ and this confers favorable computational characteristics to the gamma-ranking 
+ procedure (Sections 4,5). 
+  The cataloged structures record patterns of equality and 
+ inequality among latent expected values.
+Where normal-theory specifications seem to be intractable, a gamma-based
+ mixture model produces closed formulas for all necessary component densities, 
+thanks to an embedding of the relevant gamma-distributed variables in a 
+set of Poisson processes (Section~3). The formulation also extends 
+to Poisson-distributed responses that are characteristic of gene expression
+measured by next-generation sequencing (Section 6).
+
+
+\section{Mixture of structured components}
+
+The data considered has a relatively simple layout. Each gene $g$
+from a possibly large number is associated with a vector
+$x_g = (x_{g,1}, x_{g,2}, \ldots, x_{g,n})$ holding measurements
+of gene expression from $n$ distinct biological samples.  The $n$
+samples are distributed among $1 < p \leq n$ different groups, which
+represent possibly 
+different transcriptional states of the cells under study. 
+The groups may represent cells exposed to $p$ different chemical
+treatments, cells at $p$ different developmental stages, or cells
+at $p$ different points along a time course, for example.
+The layout of samples $\{1, 2, \ldots, n \}$  is recorded in
+a vector, say $l = (l_1, l_2, \ldots, l_n )$, with $l_i = j$ indicating
+that sample $i$ comes from group $j$.  This is fixed by design and 
+known to the analyst; to simplify the development we suppress $l$ from
+the notation below except where clarification is warranted.
+
+Each expression 
+measurement $x_{g,i}$ is treated 
+ as a positive, continuous variable representing
+a fluorescence intensity from a microarray, after pre-processing has
+adjusted for various systematic effects not related to the
+groupings of interest.
+ Recent technological advances
+allow expression to be measured instead as an explicit abundance count.
+  The mixture model developed below
+  adapts readily to this case (Section 6).
+
+
+Gamma ranking entails clustering genes according to the fit 
+of a specific model of gene-level data. 
+The joint
+probability density for a data vector $x_g$, denoted $p(x_g)$, 
+is treated as a finite mixture over a catalog of discrete
+ structures $\eta$, each of which determines 
+ ordering constraints among latent expected values.
+  More specifically, 
+\begin{eqnarray}
+\label{eq:mix}
+ p(x_g) = \sum_{\eta} p(x_g|\eta) \, \pi_\eta,
+\end{eqnarray}
+where
+$\pi_\eta$ is a mixing proportion and the component density $p(x_g|\eta)$ 
+ is determined through modeling.  
+Posterior structure probabilities are
+  $p(\eta|x_g) = p(x_g|\eta) \pi_\eta/p(x_g)$ and these determine 
+gene clusters by Bayes's rule assignment.  Alternatively
+the cluster contents can be regulated by a threshold parameter $c$, and
+\begin{eqnarray*}
+ {\mbox {\rm cluster}}(\eta) = \left\{ g: \, p(\eta|x_g) \geq c \right\},
+\end{eqnarray*}
+though some genes may go unassigned in this formulation.
+
+The component density $p(x_g|\eta)$  takes a special
+form in gamma ranking.  It is derived from integration in
+ a hierarchical model in which gene-level data are gamma distributed 
+ conditionally on latent
+expected values, and in which these latent values also fluctuate, but
+respecting the structure $\eta$.  The gamma 
+observation component is often
+supported empirically;  there is theoretical
+support from stochastic models of population abundance (Dennis
+and Patil, 1984; Rempala and Pawlikowska, 2008); and there are practical
+considerations that a gamma-based model may be the only one for
+continuous data in which
+ordering calculations are feasible.
+
+
+In gamma ranking $p(x_g|\eta)$ 
+ is structured according
+to characteristics of $\eta$, which indicates a pattern of equality and
+inequality constraints among latent expected expression levels. 
+Three structures, denoted 
+ $\{ (1)(2), \, (12), \, (2)(1) \}$, cover the two-group comparison. 
+ The notation conveys both
+the partition of group means and the ordering of subsets within the
+partition. For instance, in  $\eta = (2)(1)$
+the expected expression level in group $2$ is less than
+that of group $1$; while $\eta = (12)$ indicates that both groups
+share a common latent mean.   With $p=3$ groups
+there are 13 structures, 
+\begin{eqnarray*}
+ && (123), (12)(3), (3)(12), (13)(2), (2)(13), (1)(23), (23)(1),  \\
+ && (1)(2)(3), (2)(1)(3), (1)(3)(2), (2)(3)(1), (3)(1)(2), (3)(2)(1), 
+\end{eqnarray*}
+   and the number grows rapidly with the number of groups (Table~\ref{tab0}).  
+A simple way to think about $H_{\rm ord} = \{ \eta \}$, the catalog
+ of these ordered structures on
+ $p$ groups, is to imagine $p$ real values $y=(y_1, y_2, \ldots, y_p)$ and 
+ the possible vectors you would get by ranking $y$.  Of course there 
+are $p!$ rankings if ties are not permitted, but generally there are
+ far more rankings, and $H_{\rm ord}$ is in 1-1 correspondence 
+ with the set of rankings of $p$ numbers, allowing ties.
+
+\begin{table}[h]
+\caption{The number of ordered structures, Bell$+$, as a function of the
+ number of groups, $p$.  This is $\sum_{k=1}^p (k!) S(p,k)$, where $S(p,k)$ are
+ Stirling numbers of the second kind.  The Bell number of partitions of
+ $1,\cdots ,p$ is included for comparison. \label{tab0} }
+\centering
+\begin{tabular}{rrr}
+ $p$ & Bell$+$ & Bell \\ \hline
+ 2     &   3   & 2 \\
+ 3     &  13   & 5 \\
+ 4     &  75   & 15 \\
+ 5     & 541   & 52 \\
+ 6     & 4683  & 203 \\ \hline
+\end{tabular}
+\end{table}
+
+Consequently, 
+an ordered structure $\eta$ also dictates an association between sample 
+labels $i \in \{1,2, \ldots, n\}$ and levels of the latent expected
+values.  The null structure $\eta=(12\ldots p)$, 
+ for example, entails equal mean expression
+across all $p$ groups;  all observations are associated with a single
+mean value (and we write $K_\eta = 1$).
+More generally there are $K_\eta >1$ distinct mean values,
+$\mu_1 < \mu_2 < \ldots < \mu_{K_\eta}$, say. Without loss of generality
+we index the means by rank order.  The association maps
+each $i \in \{1, 2,  \ldots, n \}$ to some $\mu_k$;  it amounts
+to a partition of the samples together with an ordering
+of the subsets within the partition matching the order of 
+the latent means.  We express this association with
+disjoint subsets $\sigma(\eta,k)$, $k=1,2,\ldots, K_\eta$, and have 
+  $k$ follow the order of the expected values.  For
+example, suppose that samples $\{1,2, \ldots, 6\}$ constitute two replicate
+samples in each of $p=3$ groups, and 
+$\eta=(13)(2)$ is considered to relate the group-specific expected values.
+(I.e., the gene is upregulated in group~2, and not differentially
+ expressed between groups~1 and~3.) 
+ Then $K_\eta=2$, 
+ $\sigma(\eta,1)=\{1,2,5,6\}$ and $\sigma(\eta,2)=\{3,4\}$.
+ Subset $\sigma(\eta,k)$
+ includes $n_k$ samples and induces gene-level statistics
+\begin{eqnarray*}
+s_{g,k} = \sum_{ i \in \sigma(\eta,k) } x_{g,i}  \quad 
+{\mbox {\rm and}} \quad 
+t_{g,k} = \prod_{i \in \sigma(\eta,k) } x_{g,i} .
+\end{eqnarray*}
+
+The structure/partition notation may seem a bit unusual, but it
+is very convenient in multi-group mixture modeling. For clarification,
+let us refer back to the layout notation and
+take the replicates $r_j = \{i: l_i = j \}$, which equal those
+samples in group $j$.
+Consider a gene that is completely differentially expressed relative to
+the $p$ groups;  that is, it assumes one of the $p!$ structures
+$\eta$ in which $K_\eta = p$.  It follows that each set $r_j$ equals
+exactly one of the subsets $\sigma(\eta,k)$. (It would be $\sigma(\eta,1)$
+if $r_j$ had the lowest mean expression level, for instance.) 
+ In the absence of complete differential expression, multiple groups
+ share expected values. Generally, therefore, each subset $\sigma(\eta,k)$ is
+ a union of various replicate sets $r_j$.  
+The language also conveys the assumption
+  that replicates $i_1$ and $i_2$ in the same set $r_j$ necessarily share 
+ expected value, regardless of the structure $\eta$.
+In calculating probabilities,
+ the sets $\sigma(\eta,k)$ of equi-mean samples are more important
+ than the replicate sets $r_j$. 
+
+The latent expected values are constrained by
+ $\eta$ to the order   $\mu_1 < \mu_2 \ldots < \mu_{K_\eta}$. 
+ Propeling our calculations is the ability to integrate these 
+ ordered means
+({\em i.e.}, marginalize them) in a model involving gamma distributions on some
+transformation of the $\mu_k$'s.  Recall that a gamma distribution 
+with shape $a>0$ and rate $\lambda >0$, denoted Gamma$(a,\lambda)$,
+has probability density:
+ \begin{eqnarray*}
+ p(z) = \frac{ \lambda^{a} z^{a-1} \exp\{ -z \lambda \} }{\Gamma(a) },
+ \qquad z>0.
+\end{eqnarray*}
+We assume that inverse means $\psi_k = 1/\mu_k$ have joint density
+\begin{eqnarray}
+\label{eq:comp1}
+p_\eta \left(\psi_1, \ldots, \psi_{K_\eta} \right) 
+ &=& K_\eta! \, \left[  
+ \prod_{k=1}^{K_\eta} \frac{ (\alpha_0 \nu_0)^{\alpha_0} \psi_k^{\alpha_0 -1}
+          \exp\{ -\alpha_0 \nu_0 \psi_k \} }{
+      \Gamma( \alpha_0 ) } \right] \\  \nonumber
+ & & \times  1\left[ \psi_1 > \psi_2 \ldots > \psi_{K_\eta} \right] 
+\end{eqnarray}
+which reflects independent and identically distributed 
+ Gamma$(\alpha_0, \alpha_0 \nu_0)$ components, conditioned to
+ one ordering.  To complete the hierarchical specification we 
+assume the observation model
+\begin{eqnarray}
+\label{eq:comp2}
+p(x_g|\psi_1, \ldots, \psi_{K_\eta},\eta) &=&
+ \prod_{k=1}^{K_\eta} \, \prod_{i \in \sigma(\eta,k) }
+     \frac{ ( \alpha \psi_k )^{\alpha  } x_{g,i}^{\alpha -1} \exp\{ 
+        - x_{g,i} \psi_k \alpha \} } { \Gamma(\alpha) } \\ \nonumber
+ &=& \prod_{k=1}^{K_\eta} 
+     \frac{ ( \alpha \psi_k)^{\alpha n_{k} } t_{g,k}^{\alpha -1} \exp\{ 
+        - s_{g,k} \psi_k \alpha \} } { (\Gamma(\alpha))^{n_k} }.
+\end{eqnarray}
+Equivalently, with sample $i \in \sigma(\eta, k)$, measurement
+ $x_{g,i}$ is
+distributed as Gamma$(\alpha, \alpha \psi_k)$, all conditionally on 
+the latent values and $\eta$, and independently across samples.
+The structured component $p(x_g|\eta)$ arises by integrating~(\ref{eq:comp2})
+against the continuous mixing distribution~(\ref{eq:comp1}).
+Specifically,
+\begin{eqnarray*}
+p(x_g|\eta) = \int p(x_g| \psi_1, \ldots, \psi_{K_\eta}, \eta ) \,
+        p_\eta(\psi_1, \ldots, \psi_{K_\eta} ) \, d\psi_1 \ldots 
+ d\psi_{K_\eta} .
+\end{eqnarray*}
+Moving allowable factors from the integral,
+\begin{eqnarray*}
+p(x_g|\eta) &=& \frac{K_\eta! (\alpha_0 \nu_0)^{K_\eta \alpha_0} \alpha^{ \alpha n}
+      }{ \Gamma(\alpha_0)^{ K_\eta} \Gamma(\alpha)^n } 
+  \left(  \prod_{k=1}^{K_\eta} J_k t_{g,k}^{\alpha - 1} \right) \\
+ & & \times 
+  \int_E \prod_{k=1}^{K_\eta} \frac{ \psi_k^{ \alpha_0 + \alpha n_k -1 }
+		\exp\{ -\psi_k\left( \alpha_0 \nu_0 + \alpha s_{g,k} \right)\} }
+   {J_k} \, d\psi_1 \ldots d{\psi_{K_\eta}}
+\end{eqnarray*}
+where the integral is over the set $E$ of ordered $\psi_k$'s, and where $J_k$
+represents any cluster-specific quantity which does not depend on $\psi_k$. 
+ Choosing 
+\begin{eqnarray*}
+J_k = \frac{ \Gamma( \alpha_0 + \alpha n_k ) }{ (\alpha_0 \nu_0 
+		+ \alpha s_{g,k})^{ \alpha_0 + \alpha n_k } }
+\end{eqnarray*}
+provides just the right normalization, because then
+  the integrand becomes the joint 
+density of independent gamma-distributed variables, with the $k$th variable
+having shape $a_k = \alpha_0 + \alpha n_k$ and rate $\lambda_k =
+ \alpha_0 \nu_0 + \alpha s_{g,k}$.  After a bit of simplification
+the following result is established.
+
+\begin{theorem}
+In the model defined above, the component density $p(x_g|\eta)$ equals
+\begin{eqnarray}
+\label{eq:gg}
+  c_\eta  \left(  \prod_{i=1}^n x_{g,i}^{\alpha - 1} 
+  \right)
+  \underbrace{ \prod_{k=1}^{K_\eta} \left( s_{g,k} + \frac{\alpha_0 \nu_0}{\alpha}
+  \right)^{ -a_k } }_{ {\rm center} (\eta) } \,
+ \underbrace{ P\left(Z_1 > Z_2 > \ldots > Z_{K_\eta} \right) }_{ P_{\rm ord}(
+ \eta) }
+\end{eqnarray}
+ where the $Z_k$'s are mutually
+ independent gamma-distributed random variables with
+shapes $a_k = \alpha_0 + \alpha n_k$ and rates
+ $\lambda_k = \alpha_0 \nu_0 + \alpha s_{g,k}$, and where the 
+normalizing constant is
+\begin{eqnarray*}
+c_\eta =  \frac{K_\eta !}{\left[ \Gamma(\alpha) \right]^n \, 
+ \left[ \Gamma(\alpha_0)  \right]^{ K_\eta } } \,
+  \left( \frac{ \alpha_0 \nu_0 }{ \alpha } \right)^{\alpha_0 K_\eta} 
+ \, \prod_{k=1}^{K_\eta} \Gamma( a_k ) .
+\end{eqnarray*}
+  When $K_\eta=1$, $P_{\rm ord}( \eta) = 1$.
+\end{theorem}
+
+In the null structure, for any $p$,
+  ({\em i.e.}, $K_\eta = 1$ and $\eta = (12\cdots p)$), the 
+distribution is exchangeable and equals a multivariate compound gamma 
+(Hutchinson, 1981).  
+The positive parameters $\alpha$ and
+$\alpha_0$ regulate within-group and among-group variation,
+and $\nu_0$ is a scale parameter. 
+Inspection also confirms that if the
+random $X=(X_1, \ldots, X_n)$ has density $p(x|\eta)$ in~(\ref{eq:gg}), and
+if $b>0$, then $Y=(bX_1, \ldots, bX_n)$ has a density of the same type,
+with shape parameters $\alpha_0$ and $\alpha$ unchanged, but with scale
+parameter $b \nu_0$.  
+ Special cases of the density~(\ref{eq:gg}) have been reported: Newton {\em et al.} (2004) presented the case $p=2$; Jensen {\em et al.} (2009) presented the case $p=4$. See also Yuan and Kendziorski (2006a).
+ Evidently an algorithm to compute $P_{\rm ord}(\eta)$ 
+ is required in order  to evaluate the component mixing 
+densities. Beyond the $p=2$ case, previous reports have 
+ evaluated these gamma-ranking probabilities by Monte Carlo.
+
+ Figure~\ref{fig2}  displays contours of the three structured components 
+ when $n=2$ and $p=2$.   Clearly the components 
+distribute mass quite differently from one another, and in a way that reflects
+ constraints  encoded by $\eta$.  The densities from
+different structures $\eta$ have the
+  same support; the constraints restrict latent expected values rather
+than observables.
+In this way the approach shares something with generalized linear modeling
+wherein responses are modeled by generic
+exponential family densities and covariate information constrains the 
+expected values (McCullagh and Nelder, 1989).
+
+\begin{figure}
+\caption{Three structured components in $\mathbb{R}^2$. 
+ Here $\alpha=10$ and $\alpha_0=3$. Contours cover 50\%, 80\%, 95\%,
+ and 99\% probability. For convenience the density is shown for
+ log-transformed pairs. \label{fig2} }
+\centering
+\includegraphics{fig/three.pdf}
+\end{figure}
+
+
+\section{Gamma-rank probabilities}
+
+ A statistical computing problem must be solved
+ in order to implement gamma ranking. Specifically, it is required to
+ calculate the probability $P(E)$ of the event
+ \begin{eqnarray}
+\label{eq:e}
+ E = \left\{ Z_1 > Z_2 > \ldots > Z_K \right\}
+ \end{eqnarray} 
+ where $\{ Z_k: k=1,2,\ldots, K \}$ 
+ are mutually independent gamma distributed random
+ variables with possibly different shapes
+ $a_1, a_2, \ldots, a_K$  and rates $\lambda_1, \lambda_2, \ldots, \lambda_k$.
+ (Each $P_{\rm ord}(\eta)$ in Section~2 is an instance of $P(E)$.)
+ In the special case $K=2$, the event in 
+two gamma-distributed variables is equivalent to the $E' =
+  \left\{ B > \lambda_2/(\lambda_1 + \lambda_2)\right\}$, 
+  where $B$ is a Beta$(a_1,a_2)$ distributed variable. 
+ Thus $P(E)=P(E')$ can be computed
+ by standard numerical approaches for the Beta distribution.
+  Although a similar representation
+is possible for Dirichlet-distributed vectors when $K>2$, a direct numerical
+approach is not clearly indicated.
+  In modeling permutation data, Stern (1990)
+presented a formula for $P(E)$ for any value $K$, but
+ assuming common shape
+parameters $a_k = a$.  Sobel and Frankowski (1994) calculated $P(E)$ for 
+$K < 5$ and assuming constant rates $\lambda_k = \lambda$, but to our 
+knowledge a general formula has not been developed.
+A Monte Carlo approximation is certainly feasible,  but
+a fast and accurate 
+ numerical approach would be preferable for computational efficiency: 
+target values may be small, and 
+ $P(E)$ may need to be recomputed for many shape and rate settings.
+
+There is an efficient numerical approach to computing $P(E)$ when
+ shapes $a_k$ are positive integers. The approach involves
+embedding $\left\{ Z_k \right\}$ in a collection
+of independent Poisson processes $\left\{ \mathbb{N}_k \right\}$, 
+where $k=1,2, \ldots, K$. Specifically,
+let $\mathbb{N}_k$ denote a Poisson process on $(0, \infty)$ with rate
+$\lambda_k$.  So $\mathbb{N}_k(0,t] \sim {\mbox {\rm Poisson}}( t \lambda_k )$,
+for example.  Of course, gaps between points in $\mathbb{N}_k$ are 
+independent and 
+ exponentially distributed, and the gamma-distributed
+ $Z_k$ can be constructed by summing the first $a_k$  gaps,
+\[
+ Z_k = \min\left\{ t>0: \mathbb{N}_k(0,t] \geq a_k \right\}. \]
+Next, form processes $\left\{ \mathbb{M}_k \right\}$ by
+accumulating points in the originating processes:
+ $ \mathbb{M}_k = \sum_{j=1}^k \mathbb{N}_j $.
+Marginally $\mathbb{M}_k$ is a Poisson process with rate
+ $\Lambda_k = \sum_{j=1}^k \lambda_j$, but over $k$ the
+processes are dependent owing to overlapping points. 
+ To complete the construction define
+count random variables $M_1, M_2, \ldots, M_{K-1}$ by
+\begin{eqnarray}
+\label{eq:def1}
+M_k = \mathbb{M}_k\left( 0, Z_{k+1} \right].
+\end{eqnarray}
+It is immediate that each $M_k$ has a marginal negative
+binomial distribution: the gamma distributed
+  $Z_{k+1}$ is independent of $\mathbb{M}_k$;
+conditioning on $Z_{k+1}$
+in~(\ref{eq:def1}) gives a Poisson variable which mixes out to the
+negative binomial (Greenwood and Yule, 1920).  Specifically,
+\begin{eqnarray*}
+M_k \sim {\rm NB}\left({\mbox {\rm shape}} =a_{k+1}, {\mbox {\rm scale}}= 
+   \Lambda_k/\lambda_{k+1} \right),
+\end{eqnarray*} 
+which corresponds to the probability mass function
+\begin{eqnarray}
+\label{eq:nb}
+p_k(m) = \frac{ \Gamma( m+a_{k+1} ) }{ \Gamma( a_{k+1} ) \, \Gamma(m+1) }
+         \left( \frac{\lambda_{k+1}}{\Lambda_{k+1}} \right)^{a_{k+1}} \,
+         \left( \frac{\Lambda_k}{\Lambda_{k+1} } \right)^{m} 
+\end{eqnarray}
+for integers $m \geq 0$.
+The next main finding is
+\begin{theorem} With $E$ as in~(\ref{eq:e}), $M_k$ as in~(\ref{eq:def1}),
+ and $p_k$ as in (\ref{eq:nb}), $P(E)$ equals
+\begin{eqnarray}
+\label{eq:f1}
+\sum_{m_1=0}^{a_1 - 1} \sum_{m_2=0}^{m_1+a_2 -1 }
+   \cdots \sum_{m_{K-1} = 0 }^{m_{K-2} + a_{K-1} - 1 }
+   p_1(m_1) \, p_2(m_2) \, \cdots \, p_{K-1}(m_{K-1}).
+\end{eqnarray}
+\end{theorem}
+It does not seem to be obvious
+that $E$ in~(\ref{eq:e}) is equivalent to an event in the $\{M_k \}$.
+We also find it striking that the $M_k$ variables are independent
+considering that they are constructed from highly dependent $\mathbb{M}_k$
+processes.  Proof of (\ref{eq:f1}) and the related distribution theory
+are presented in Appendix~A.
+
+A redistribution of products and sums 
+allows a numerically efficient evaluation of~(\ref{eq:f1}), as in
+ the sum-product algorithm (e.g., 
+Kschischang {\em et al.} 2001). For instance with $K=4$,
+\begin{eqnarray}
+\label{eq:f2}
+P(E) = \sum_{m_1=0}^{a_1 - 1 } p_1(m_1) \left\{
+        \sum_{m_2 = 0}^{m_1+a_2-1} p_2(m_2) \left[
+        \sum_{m_3 = 0}^{m_2 + a_3-1} p_3(m_3) \right] \right\}.
+\end{eqnarray}
+Here one would evaluate $P(E)$ by first constructing for each $m_2 \in 
+ \{ 0, 1, \ldots, a_1+a_2-2 \}$ an inner sum $P( M_3 \leq m_2+a_3-1 )$. 
+This vector in $m_2$ values is used to process the second inner sum,
+for each value $m_1 \in \{0,1, \ldots, a_1-1\}$.  Indeed the computation
+is completely analogous to the Baum-Welch backward recursion 
+(e.g., Rabiner, 1989), although, 
+interestingly, there seems to be no hidden Markov chain in the system.  A version of
+the Viterbi algorithm identifies the maximal summand and thus provides an
+approach to computing $\log P(E)$ in case $P(E)$ is very 
+small.
+
+
+\section{Linear independence}
+
+The component densities~(\ref{eq:gg}) seem to have the useful property of being 
+linearly independent functions on $\mathbb{R}^n$.  Linear 
+ independence of the component density functions is equivalent to 
+identifiability of
+the mixture model (Yakowitz and Spragins, 1968). 
+It is necessary for strict concavity of
+the log-likelihood, but it is not routinely established.
+
+Let $a=(a_\eta)$ denote a vector of real numbers indexed by structures $\eta$.
+Recall that the finite catalog of functions $\{ p(x|\eta) \}$
+is linearly independent if 
+\begin{eqnarray*}
+ T_a(x) =  \sum_\eta a_\eta p(x|\eta) = 0  \quad {\mbox {\rm for all $x$ 
+ implies $a_\eta=0$ for all $\eta$}}.
+\end{eqnarray*}
+It is plausible that 
+ this property holds generally, but we have been able to establish
+a rigorous proof only in a special case.
+\begin{theorem}
+In a balanced experiment where $m$ replicate samples are measured in
+each of $p=2$ or $p=3$ groups, the component densities $p(x_g|\eta)$ in
+(\ref{eq:gg}) are linearly independent functions on $\mathbb{R}^{mp}$. 
+\end{theorem}
+A proof proceeds by finding
+a multivariate polynomial $\phi(x) > 0$ such that $\phi(x) T_a(x) $
+is itself a multivariate polynomial.  A close study of 
+the degrees and coefficients of this polynomial leads us to the result
+(Appendix~B).  
+That such a $\phi(x)$ exists follows from~(\ref{eq:gg}): the center
+is a rational function, and the factor
+  $P_{\rm ord}(\eta)$ is also rational, being
+a linear combination of rational functions, as established in~(\ref{eq:f1}).  
+
+\section{Numerical considerations}
+
+\subsection{Estimation}
+
+Parameters $\alpha, \alpha_0, \nu_0$ in (\ref{eq:gg}) 
+ reflect genome-wide properties of 
+expression, and our current implementation estimates them separately from 
+the relatively numerous set of  mixing proportions.
+These mixing proportions $\pi=\{ \pi_\eta \}$
+may be estimated  by attempting to maximize the log likelihood
+\begin{eqnarray}
+\label{eq:loglik}
+l(\pi) = \sum_{g=1}^G \log\left\{  \sum_{\eta} \pi_\eta p(x_g|\eta) \right\}
+\end{eqnarray}
+where $G$ is the number of genes with data, and where
+ $p(x_g|\eta)$ is as in~(\ref{eq:gg}).   The approach is buttressed
+by the following finding.
+
+\begin{theorem}
+Suppose that the component densities are linearly independent functions
+in the mixture of structured components model.
+If $G$ is sufficiently large, then
+  the log likelihood $l(\pi)$ in~(\ref{eq:loglik})
+ is strictly concave on
+a convex domain, and thus admits a unique maximizer $\hat \pi = 
+ \{ \hat \pi_\eta\} $. This property is almost sure in data sets.
+\end{theorem}
+  
+ The expectation-maximization (EM) algorithm naturally applies
+ to approximate $\hat \pi$.   
+ By strict concavity of $l(\pi)$, it is not necessary to re-run
+EM from multiple starting points.  The final estimate and resultant
+clustering should be insensitive to starting position, as has been found 
+ in numerical experiments.  This is a convenient but unusual property in
+the domain of mixture-based clustering (McLachlan and Peel, 2000, pg 44).
+ 
+ In a small simulation experiment we confirmed 
+ that our implementation of the EM algorithm was able to recover mixture
+ proportions given sufficiently many draws from the marginal distribution~(\ref{eq:mix})
+ (data not shown).
+
+\subsection{Example}
+Edwards {\em et al.} (2003) studied the
+transcriptional response of mouse heart tissue to oxidative stress.
+Three biological replicate samples were measured using Affymetrix
+oligonucleotide arrays at each of five time points (baseline and
+ one, three, five, and seven hours after a stress treatment) for several
+ ages of mice. Considering the older mice
+ for illustration, we have
+ $p=5$ distinct groups, $n=15$ samples, and $10,043$ genes ({\em i.e.}, 
+probe sets, after pre-processing).  
+Gene-specific moderated F-testing (Smyth, 2004)
+ produced a list of $G=786$ genes
+that exhibited a significant temporal response to stress at the $10\%$
+false discovery rate (by q-value; Storey and Tibshirani, 2003).
+Gamma ranking involved fitting the mixture of 
+ structured components, which with $p=5$ mixes over $540$ distinct components. 
+(Since we worked with significantly altered genes, we did not include the 
+ null component in which all means are equal; other aspects of model
+ fitting are provided in Appendix~D).
+From the catalog of $540$ possibilities, genes populated 23 clusters
+by gamma ranking, though only four clusters contained 10 or more of the
+ $G=786$ stress-responding genes (Figure 2).
+ Most expression changes occurred between baseline and
+ the first time point,
+but 30 genes (red cluster) 
+ showed significant up-regulation at all but one time point, for example.
+%% **764 genes [22 not shown cause either mapped to other structures, 
+%% or are not fold-change compatible**] 
+
+
+\begin{figure}
+\caption{Dominant patterns of differential expression in time course data
+ from Edwards {\em et al.} (2003). Each panel summarizes data from one
+ cluster identified by gamma ranking (the top nine clusters are shown).
+ A digital code signifies the inferred ordering of the latent expected
+ values ({\em i.e.}, $\eta$, in an alternative notation).  Each gene is a
+ single line trace; triplicate measurements were reduced by averaging and
+ then standardized for display. Results are based on 100 cycles of EM
+to estimate mixing proportions followed by Bayes's rule assignment. }
+\centering
+\includegraphics[height=.65\textheight]{fig/gr100-max-portrait3.pdf}
+\end{figure}
+
+
+
+Gamma ranking gave different results than
+\verb+K-means+ or \verb+mclust+, which respectively found $2$ and $20$ 
+clusters in Edwards' data. 
+(\verb+K+ was chosen according to guidelines in Hastie {\em et al.} 2001).
+The adjusted Rand index (Hubert and Arabie, 1985), which measures 
+ dissimilarity of partitions,
+was $0.09$ comparing gamma ranking and \verb+K-means+,
+$0.16$ for gamma ranking and \verb+mclust+ and $0.16$, while for
+\verb+K-means+ and \verb+mclust+ it was smaller, at $0.02$. 
+The biological significance of clusters identified by any algorithm 
+may be worth investigating. For example, the cluster of
+ 30 increasing expressors includes 2 genes (Mgst1 \& Gsta4) from
+among only 17 in the whole genome that are involved
+in glutathione transferase activity.
+%% (GO:0004364). 
+Understanding the 
+increased activity of this molecular function will give a more complete
+picture of the biology (e.g., Girardot {\em et al.} 2004). 
+In isolation it is difficult to see how such investigation is supportive
+ of a given clustering approach.  The benefits become more apparent 
+when we look at many data sets and many functional categories.
+
+  
+\subsection{Empirical Study}  
+Gamma ranking  was applied to a series of 11 data sets obtained 
+from the Gene Expression Omnibus (GEO) repository (Edgar {\em et al.}, 2002).
+These were all the data sets satisfying a specific and relevant query  
+(Table~\ref{tab:dat}). They represent experiments
+on different organisms and they exhibit a range of variation characteristics.
+In each case we  applied
+the moderated F test and selected genes with q-value no larger than $5\%$.
+   Gamma ranking, and, for comparison, 
+\verb+mclust+ and \verb+K-means+, were applied in order to 
+ cluster genes separately for each data set.
+Basic facts about the identified clusters are reported in Table~\ref{tab:dat}.
+Figure~3  shows that gamma ranking tends to produce smaller clusters than
+\verb+mclust+ and \verb+K-means+, although it also has a wider size 
+ distribution; 
+and there was a relatively low level of
+overlap among the three approaches. 
+\begin{figure}
+\caption{Characteristics of clusters from an empirical study of 11 data sets. } 
+\centering
+\includegraphics[height=.3\textheight]{fig/cluster-update0616-2.pdf}
+\end{figure}
+
+The empirical study shows not only that gamma ranking produces substantially
+ different clusters than popular approaches, but also that the 
+identified clusters are significant in terms of their biological properties.
+Investigators often measure the biological properties of a gene cluster by
+identifying functional properties that seem to be over-represented in the
+cluster.  Gene set enrichment analysis is most frequently performed by 
+applying Fisher's exact test to each of a long list of functional categories,
+ testing the null hypothesis that the functional
+category is independent of the gene cluster (e.g., Newton {\em et al.}, 2007).
+  Functional 
+ categories from the Gene Ontology (GO) Consortium and the
+Kyoto encyclopedia (KEGG) were used to assess
+the biological properties of all the clusters 
+identified in the above calculation.
+Specifically, we computed for each cluster a vector of p-values 
+across GO and KEGG.  Figure~4 
+ shows the proportion of these p-values smaller
+than 0.05, stratified by cluster size and in comparison to results on random
+sets of the same size.  Evidently, the clusters identified 
+by gamma ranking contain substantial biological information. 
+
+\begin{figure}
+\caption{Empirical study of the 
+ association between gamma-ranking clusters and biological
+ function.  For every gene cluster identified by gamma ranking  in
+ the data sets in Table~2, plotted is  the proportion of small
+ enrichment p-values 
+ (vertical) versus the set size (horizontal). The enrichment p-values are
+ Fisher-exact-test p-values and the proportion is computed over a 
+ database of GO and KEGG
+ pathways (Table 7). Bands indicate similar proportions computed for
+ random sets.   } 
+\centering
+\includegraphics[height=.7\textheight]{fig/simulation1-0616.pdf}
+\end{figure}
+
+
+\section{Count data}
+ Microarray technology naturally leads to continuous measurements of gene 
+ expression, as modeled in Section~2, but technological advances allow
+ investigators essentially to count the number of copies of each molecule 
+ of interest in each sample (e.g., Mortazavi {\em et al.} 2008). 
+ Poisson distributions are central in the analysis of such data (e.g., Marioni {\em et al.}
+ 2008), and gamma ranking extends readily to this case.
+
+Briefly, data at each gene (or tag) is a vector $x_g=(x_{g,1}, \ldots, x_{g,n})$
+as before, but $x_{g,i}$ is now a count from the $i$th {\em library} 
+ (rather than an expression level on the $i$th microarray).  
+There may be replicate libraries within a given cellular state, and
+comparisons of interest may be between different cellular states.
+Library sizes $\{N_i \}$, say, are additional
+but known design parameters.  Important parameters are expected counts 
+relative to some common library size.
+ Adopting the notation from Section~2,
+ a cluster of libraries $\sigma(\eta,k)$ may share their 
+ size-adjusted 
+expected values, and so for any $i \in \sigma(\eta, k)$ the observed count
+ $x_{g,i}$ arises from the Poisson distribution with mean $N_i \mu_k$.
+Further, the structure $\eta$ on test puts an ordering constraint
+$\mu_1 < \mu_2 \ldots < \mu_{K_\eta} $ on these latent expectations. The key is
+to integrate away these latent expected values using a conjugate gamma prior, but
+conditionally on the ordering. Prior to conditioning, the $\mu_k$'s are independent
+and identical gamma variables with (integer) shape $\alpha_0$ and rate $\nu_0$. Then,
+analogously to Theorem~2, the predictive distribution 
+ for the vector of
+conditionally Poisson responses is:
+\begin{eqnarray}
+\label{eq:pg}
+ p(x_g|\eta) = 
+  c_\eta  \, \left(  \prod_{i=1}^n  \frac{1}{ x_{g,i}!}  \right)
+  \underbrace{ \left(   \prod_{k=1}^{K_\eta} u_{g,k}  \,
+    \Gamma( s_{g,k} + \alpha_0 ) \right)
+   }_{ {\rm center} (\eta) } \,
+  P_{\rm ord}( \eta ) 
+\end{eqnarray}
+where 
+ \begin{eqnarray*}
+ P_{\rm ord}(\eta) =  P\left(Z_1 < Z_2 < \ldots < Z_{K_\eta} \right) 
+ \end{eqnarray*}
+ with the $Z_k$'s mutually
+ independent gamma-distributed random variables with
+(gene-specific) shapes $a_k = \alpha_0 + s_{g,k}$ and  rates
+ $\lambda_k = \alpha_0 \nu_0 + n_{k}$. In~(\ref{eq:pg}), the 
+normalizing constant is
+\begin{eqnarray*}
+c_\eta =  \frac{K_\eta ! (\alpha_0 \nu_0)^{ \alpha_0 K_\eta } }{
+ \left[ \Gamma(\alpha_0)  \right]^{ K_\eta  } } \,
+  \prod_{k=1}^{K_\eta}   \left( \alpha_0 \nu_0 + n_{k} \right)^{-\alpha_0} 
+\end{eqnarray*}
+and, further,
+ $s_{g,k} = \sum_{i \in \sigma(\eta,k) } x_{g,i}$, $n_{k} = \sum_{i \in \sigma(\eta,k) }
+ N_i$, and
+\begin{eqnarray*}
+u_{g,k} = \prod_{i \in \sigma(\eta,k) }
+ \left( \frac{ N_i }{ \alpha_0 \nu_0 + n_{k} } \right)^{x_{g,i}}.
+\end{eqnarray*}
+Notice that in $P_{\rm ord}(\eta)$ the event refers to an increasing sequence of gamma's, rather
+ than a decreasing sequence, as in Theorem~1.  This arises because for Poisson responses 
+ the conjugate prior involves a gamma distribution for the means, whereas for 
+ gamma responses the conjugate is inverse gamma on the means.  For computations to work out
+ the key thing is that some monotone transformation of each
+ latent mean has a gamma
+ distribution.  In the null structure (all means equal), $P_{\rm ord} (\eta) = 1 $ and
+ (\ref{eq:pg}) reduces to the negative-multinomial distribution.
+ It will be important to study the practical 
+ utility of (\ref{eq:pg}) and overdispersed extensions ({\em cf.} Robinson and Smyth, 2007), but
+ such investigation 
+ is not within the scope of the present paper. The main reason to present the finding here is to show that gamma-rank probabilities (Section 3) arise
+in multiple probability models.
+
+\section{Concluding Remarks}
+
+Calculations presented here consider a discrete mixture model and the resulting
+clustering for gene-expression or similar data types.  The discrete mixing
+is over patterns of equality and inequality among latent expected values 
+({\em ordered structures}).
+In examples the method was applied after a round of feature selection, 
+although it could have been applied to each full data set ({\em i.e.},
+  by including
+the null structure in the mix) and it could have been the basis of more
+comprehensive analysis, going beyond clustering and towards hypothesis testing
+and error-rate-controlled gene 
+lists.  Our more conservative line is attributable in part to an
+incomplete understanding of the method's robustness. Relaxing the
+fixed-coefficient-of-variation assumption, as in Lo and Gottardo (2007) or 
+Rossell (2009), could be considered to address the problem. The focus 
+on clustering, however, is motivated largely by its practical utility 
+in the context of genomic data analysis.
+
+By cataloging ordered structures, rather than the smaller set of
+unordered structures, the mixture model produces readily interpretable
+clusters in the multi-group setting.  
+Jensen {\em et al.} (2009) argues similarly.
+ For example, the largest cluster of temporally responsive
+genes in Edwards' data are upregulated immediately after 
+treatment and show no significant fluctuations thereafter.  
+The development of calculations for ordered structures has been more
+challenging than for unordered structures, which were presented
+in  Kendziorski {\em et al.} (2003) and implemented in the Bioconductor
+package \verb+EBarrays+ (\verb+www.bioconductor.org+). 
+  Mixture calculations are simplified in the unordered
+ case because component densities reduce by factorization to
+elementary products ({\em i.e.}, 
+ the last factor in~(\ref{eq:gg}) is not present).
+The requirement to compute gamma-rank probabilities 
+had limited a fuller development.
+
+%Yuan and Kendziorski; Li et al; eQTL Meng et al; other genomics Keles et al**
+% Expression~(\ref{eq:gg}) extends equation~(??) of Kendziorski 
+%{\em et al.} (2003)
+%to ordered structures, and extends equation~(??) of Newton {\em et al.} (2004) to multiple groups.  
+
+
+The mixture framework from Kendziorski {\em et al.} (2003) has supported
+a number of extensions to related problems in statistical genomics: 
+ Yuan and Kendziorski (2006b)
+(time-course data), Kendziorski {\em et al.} (2006) (mapping 
+expression traits) and Keles (2007) (localizing transcription factors).
+The ability to monitor ordered structures may have some application in these
+problems.  Further, the ability to compute gamma-rank probabilities may
+have application in distinct inference problems (e.g., Doksum and Ozeki, 2008).
+
+Plots like Figure~4, but for \verb+K-means+ and \verb+mclust+, show a similar 
+level of biological information in their clusters (not shown).  
+ Considering size distributions and  overlap patterns, it is evident
+that gamma ranking provides distinct and potentially useful clusters.
+We also note that gamma ranking utilizes information on which samples
+are in which groups, while simpler clustering schemes are completely
+unsupervised.
+
+
+\newpage
+
+\begin{table}[h]
+\caption{Summary of 11 data sets from the Gene Expression Omnibus (GEO).
+ {\em GDS} is the GEO data set accession number.  These sets satisfied
+the search query from August 2008
+  having subset variable type {\em time} or {\em development
+stage} or {\em age} and having a single factor with three to eight levels.
+$p$ indicates the number of groups.
+$G$ indicates the number of genes deemed significantly altered by one-way
+moderated F test and 0.05 FDR (limma). The remaining columns show
+how many clusters are found by gamma ranking with 
+ 100 EM iterations ({\em GR100}), and {\em mclust} and {\em K-means}. \label{tab:dat} }
+\footnotesize
+\centering
+\begin{tabular}{rllcrrrr}
+{\em GDS} & \multicolumn{1}{c}{\em citation} &	
+ \multicolumn{1}{c}{\em organism}    &	$p$ & 
+ \multicolumn{1}{c}{$G$} 
+ &\multicolumn{1}{c}{GR100}&
+ \multicolumn{1}{c}{mclust}&
+  \multicolumn{1}{c}{K-means}\\\hline
+2323&Coser {\em et al.}	&Homo Sapiens &	3&	1409&	11&	5&	13\\
+1802&Tabuchi {\em et al.}	&Mus musculus&	4&	3433&	49&	7&	10\\
+2043&Tabuchi {\em et al.}	&Mus musculus&	4&	3001&	51&	8&	18\\
+2360&Ron {\em et al.}	&Mus musculus&	4&	8714&	50&	8&	30\\
+599&Vemula {\em et al.}	&Rattus norvegicus&5&	673&	42&	2&	40\\
+812&Zeng {\em et al.}	&Mus musculus&	5&	10982&	135&	7&	15\\
+1937&Pilot {\em et al.}	&Drosophila     &5&	7733&	88&	8&	10\\
+568&Welch {\em et al.}	&Mus musculus&	6&	3737&	134&	4&	25\\
+2431&Keller {\em et al.}	&Homo Sapiens&	6&	8505&	137&	9&	12\\
+587&Tomczak {\em et al.}	&Mus musculus&	7&	860&50&	2&	20\\
+586&Tomczak {\em et al.} 	&Mus musculus&	8&	5211&	118&	5&	20\\\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section*{Appendix A}
+
+\noindent
+{\em  Proof of Theorem 2:} Let $g_k(z)$ denote the density of a Gamma
+ distribution with shape $a_k$ and rate $\lambda_k$. By definition 
+\begin{eqnarray*}
+P(E)& =& \int_0^\infty \int_{z_{K}}^\infty 
+ \cdots \int_{z_2}^\infty \left[ \prod_{k=1}^{K} g_k(z_k)  
+ \right] \, dz_{1} \, \cdots \, dz_{K-1} \, dz_{K} \\
+ &=& \int_0^\infty g_{K}(z_{K}) \int_{z_{K}}^\infty 
+ g_{K-1}(z_{K-1}) \cdots \int_{z_2}^\infty g_1(z_1) \, dz_1 \, 
+ \cdots  \, dz_{K-1} \, dz_{K}
+\end{eqnarray*}
+where in the second line we move factors in the integrand
+ as far as possible to the left.
+ With this in mind we construct functions $f_k(z)$, $z \geq0$,
+ recursively as $f_0(z) = 1$ and, for $k=1,2, \ldots, K$, 
+\begin{eqnarray}
+\label{eq:recurse}
+f_k(z) = \int_{z}^\infty f_{k-1}(u) \, g_{k}(u)  \, du ,
+\end{eqnarray}
+and we observe that $P(E) = f_{K}(0)$. Evaluating these functions
+further, we see
+\begin{eqnarray*}
+ f_1(z) &=& \int_{z}^\infty g_1(z_1) \, dz_1 \\
+        &=& P\left( Z_1 \geq  z \right) \\
+        &=& P\left( M_1 < a_1 | Z_2 =z \right) \\
+        &=& \sum_{m_1=0}^{a_1-1} {\rm po}(m_1; \lambda_1 z).
+\end{eqnarray*}
+Here $M_1 = \mathbb{M}_1(0,Z_2)$ is Poisson$(\lambda_1 z)$ distributed
+conditionally upon $Z_2 = z$, and ${\rm po}()$ indicates the Poisson probability
+mass function with the indicated parameter. The equivalence in the second
+and third lines above stems from basic relationships between objects in the 
+underlying Poisson processes.  As long as $M_1$ is small, it means that 
+the $\mathbb{N}_1$ process has not accumulated many points up to time
+$Z_2=z$, and hence the $Z_1$ value must be relatively large. More
+basically, 
+\begin{eqnarray}
+\label{eq:pgg}
+P(U>u) = P(X<a)
+\end{eqnarray}
+ when $U \sim \; $Gamma$(a, \lambda)$ and
+$X \sim \; $Poisson$(\lambda u)$, for integer shapes $a$.
+
+Proceeding to $f_2(z)$, 
+\begin{eqnarray*}
+ f_2(z) &=& \int_{z}^\infty f_1(z_2) \, g_2(z_2) \, dz_2 \\
+        &=& \sum_{m_1=0}^{a_1-1} \int_z^\infty
+ {\rm po}(m_1; \lambda_1 z_2) \; g_2( z_2) \, dz_2 \\
+ &=& \sum_{m_1=0}^{a_1-1} p_1(m_1) \,
+ \int_{z}^\infty \frac{
+ {\rm po}(m_1; \lambda_1 z_2 ) ;, g_2(z_2) 
+ }{ p_1(m_1) } \, dz_2
+\end{eqnarray*}
+Here $p_1(m_1) $ is the probability mass function of a negative-binomial
+distribution, as in (\ref{eq:nb}).  Indeed we have reorganized the
+summand above to highlight that integrand on the far right is precisely
+the density function of a Gamma distributed variable with 
+shape $a_2+m_1$ and rate $\lambda_1+\lambda_2$. This represents the 
+Poisson-Gamma conjugacy in ordinary Bayesian analysis (e.g., Gelman
+{\em et al.} 2004, pages 52-53). The 
+integral evaluates to $1$ if $z=0$, and hence we have proved the case
+$K=2$. But furthermore the integral represents the chance that a 
+Gamma distributed variable is large, and so by~(\ref{eq:pgg}) 
+\begin{eqnarray*}
+ f_2(z) &=& 
+ \sum_{m_1=0}^{a_1-1} \sum_{m_2=0}^{m_1+a_2-1} p_1(m_1) \,
+ {\rm po}(m_2; (\lambda_1+\lambda_2) z )  \\
+ &=&
+ \sum_{m_1=0}^{a_1-1} \sum_{m_2=0}^{m_1+a_2-1} p_1(m_1) \,
+ {\rm po}(m_2; \Lambda_2 z ) 
+\end{eqnarray*}
+The baseline result of an induction proof has been established.
+Assume that for some $k \geq 3$,
+\begin{eqnarray}
+\label{eq:induct}
+f_{k-1}(z) = \sum_{m_1=0}^{a_1-1} \cdots \sum_{m_{k-1}=0}^{m_{k-2}+a_{k-1}-1}
+  \left(  \prod_{j=1}^{k-2} p_j(m_j) \right) \,
+  {\rm po}(m_{k-1}; \Lambda_{k-1} z )
+\end{eqnarray}
+and then evaluate~(\ref{eq:recurse}) to obtain
+\begin{eqnarray*}
+f_k(z) &=& \int_z^\infty f_{k-1}(z_k) \, g_k(z_k) \, dz_k \\
+   &=&   \int_z^\infty 
+ \sum_{m_1=0}^{a_1-1} \cdots \sum_{m_{k-1}=0}^{m_{k-2}+a_{k-1}-1}
+  \left(  \prod_{j=1}^{k-2} p_j(m_j) \right) \,
+  {\rm po}(m_{k-1}; \Lambda_{k-1} z_k ) \, g_k(z_k) \, dz_k \\
+ &=& 
+\sum_{m_1=0}^{a_1-1} \cdots \sum_{m_{k-1}=0}^{m_{k-2}+a_{k-1}-1}
+  \left(  \prod_{j=1}^{k-2} p_j(m_j) \right) \,
+  \int_z^\infty {\rm po}(m_{k-1}; \Lambda_{k-1} z_k ) \, g_k(z_k) \, dz_k \\
+ &=& 
+  \sum_{m_1=0}^{a_1-1} \cdots \sum_{m_{k-1}=0}^{m_{k-2}+a_{k-1}-1}
+  \left(  \prod_{j=1}^{k-1} p_j(m_j) \right) \,
+  \int_z^\infty 
+  \frac{ {\rm po}(m_{k-1}; \Lambda_{k-1} z_k ) \, g_k(z_k) }{ p_{k-1}(m_{k-1})}
+   \, dz_k  \\
+ &=&
+  \sum_{m_1=0}^{a_1-1} \cdots \sum_{m_{k-1}=0}^{m_{k-2}+a_{k-1}-1}
+  \left(  \prod_{j=1}^{k-1} p_j(m_j) \right) \,
+   \sum_{m_k=0}^{m_{k-1}+a_k-1} {\rm po}( m_k; \Lambda_k z )  \\
+ &=&
+  \sum_{m_1=0}^{a_1-1} \cdots \sum_{m_k=0}^{m_{k-1}+a_k-1}
+  \left(  \prod_{j=1}^{k-1} p_j(m_j) \right) \,
+  {\rm po}( m_k; \Lambda_k z )  
+\end{eqnarray*}
+which establishes that~(\ref{eq:induct}) is true for {\em all} $k$. 
+Evaluating at $k=K$ and $z=0$ establishes the theorem. $\Box$
+
+\vspace{.2in}
+\noindent
+{\bf Coda:} Further insight is gained by realizing from the definition of the
+counts that
+\begin{eqnarray*}
+\mathbb{M}_k(Z_k) &=& \mathbb{M}_{k-1}(Z_k) + a_k \\
+ &=& M_{k-1} + a_k. 
+\end{eqnarray*}
+But also $\mathbb{M}_k$ has a jump at $Z_k$, and so we see
+the equivalence
+\begin{eqnarray}
+Z_{k} > Z_{k+1} \Longleftrightarrow M_k < M_{k-1} + a_k.
+\end{eqnarray}
+The event $E$ is an intersection of these pairwise events, and this is manifested in the ranges of summation in (\ref{eq:f1}).  In contrast to~(\ref{eq:f1}), these event considerations give $P(E)$ equal to
+\begin{eqnarray}
+\label{eq:f3}
+\sum_{m_1=0}^{a_1 - 1} \sum_{m_2=0}^{m_1+a_2 -1 }
+   \cdots \sum_{m_{K-1} = 0 }^{m_{K-2} + a_{K-1} - 1 }
+   p_{\rm joint}(m_1,m_2, \cdots , m_{K-1}).
+\end{eqnarray}
+The implication seems to be
+ that $M_1, M_2, \ldots, M_{K-1}$ are mutually independent, 
+though  Theorem~1 does not confirm this because the factorization into
+negative binomials
+is required for all arguments, beyond what is shown.  
+It is a conjecture that the $\{ M_k \}$ are 
+mutually independent.  A proof by brute force evaluation
+  in the special cases $K=3$ and 
+$K=4$ is available (not shown), 
+but we have not found a general proof.  The fact is somewhat surprising
+because the $\{ \mathbb{M}_k \}$ processes 
+ are highly positively dependent.  The
+independence seems to emerge as a balance between this positive dependence
+and the negative association created by $Z_k$ being inversely related to
+$\mathbb{M}_k(0,t]$. $\Box$  
+
+
+\clearpage
+
+\section*{Appendix B} {\em Linear independence and proof of Theorem 3}. 
+ Consider the three-dimensional case, and initially consider a single
+ replicate in each of the three groups.
+ Data on each gene form the vector $(x,y,z)$, say,  of three positive reals.
+ Thirteen component densities $p(x,y,z|\eta)$ constitute the mixture
+ model (Table~\ref{tab:pg10}).
+ For a vector $a=(a_\eta)$ of reals, the test function is
+ $ T_a(x,y,z) = \sum_\eta a_\eta p(x,y,z|\eta) $.
+It needs to be shown that if $T_a(x,y,z) = 0$ for all $x,y,z>0$, then $a_\eta=0$ for
+ all structures $\eta$.  Specializing~(\ref{eq:gg}) to this case, 
+ and eliminating the positive factor $(xyz)^{\alpha-1}$,  we see
+that $T_a(x,y,z)=0$ is equivalent to 
+\begin{eqnarray}
+\label{eq:d1}
+ \sum_{\eta} a_\eta \, c_\eta \, {\rm center}(\eta) \, P_{\rm ord}(\eta) &=& 0.
+\end{eqnarray}
+
+\begin{table}[h]
+\caption{Thirteen structured components $p(x,y,z|\eta) = c_\eta (xyz)^{\alpha-1}
+ {\rm center}(\eta) P_{\rm ord}(\eta)$ in the three-dimensional, no-replicate case. The forms have been simplified, WLOG, by taking the scale $\nu_0=1$, by 
+ writing $\beta= \alpha_0+\alpha$ and $\xi= \alpha_0/\alpha$.  Normalizing
+ constants $c_\eta$  are as in (\ref{eq:norm}). Note that the
+ $e_m$ and $e_{m,n}$ stand for constants (not involving $x,y,z$), but possibly
+differing among rows.\label{tab:pg10} }
+\vspace{.1in}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\multicolumn{1}{|c|}{structure $\eta$  } & $[ {\rm center}(\eta) ]^{-1}$ & $P_{\rm ord}(\eta)$ \\ \hline
+ $(123)$ & $(x+y+z+\xi)^{\beta + 2 \alpha} $ & $1$ \\ 
+
+ $(12)(3)$ & $(x+y+\xi)^{\beta+\alpha} (z+\xi)^{\beta}$   &  
+$ \sum_{m=0}^{\beta+ \alpha-1} \frac{ e_m ( z + \xi)^{\beta}
+               (x+y+\xi)^{m} }{ (x+y+z+2\xi)^{\beta +m }} $ \\
+
+ $ (3)(12)$ & `` &
+$ \sum_{m=0}^{\beta-1} \frac{ e_m ( z + \xi)^{m}
+               (x+y+\xi)^{\beta +\alpha} }{ (x+y+z+2\xi)^{\beta+ \alpha+m }} $ \\ 
+
+ $(13)(2)$ & $(x+z+\xi)^{\beta+\alpha} (y+\xi)^{\beta}$   &  
+$ \sum_{m=0}^{\beta + \alpha-1} \frac{ e_m ( y + \xi)^{\beta}
+               (x+z+\xi)^{m} }{ (x+y+z+2\xi)^{\beta+m }} $ \\
+
+ $ (2)(13)$ &  `` &
+$ \sum_{m=0}^{\beta-1} \frac{ e_m ( y + \xi)^{m}
+               (x+z+\xi)^{\beta+\alpha} }{ (x+y+z+2\xi)^{\beta+ \alpha+m }} $ \\ 
+
+ $(1)(23)$ & $(y+z+\xi)^{\beta+\alpha} (x+\xi)^{\beta}$   &  
+$ \sum_{m=0}^{\beta-1} \frac{ e_m ( x + \xi)^{m}
+               (y+z+\xi)^{\beta+\alpha} }{ (x+y+z+2\xi)^{\beta+ \alpha+m }} $ \\ 
+ 
+ $(23)(1)$ & `` &
+$ \sum_{m=0}^{\beta + \alpha-1} \frac{ e_m ( x + \xi)^{\beta}
+               (y+z+\xi)^{m} }{ (x+y+z+2\xi)^{\beta+m }} $ \\
+
+ $(1)(2)(3)$ & $[ (x+\xi)(y+\xi)(z+\xi) ]^{\beta}$ &
+$ \sum_{m=0}^{\beta-1} \sum_{n=0}^{m+\beta-1}
+ \frac{e_{m,n}  (x+\xi)^m [ (y+\xi)(z+\xi)] ^{ \beta }
+         (x+y+2\xi)^{n} }{ 
+  (x+y+2\xi)^{\beta +m} (x+y+z+3\xi)^{\beta +n} } $ \\
+
+ $(2)(1)(3)$ & `` &
+$ \sum_{m=0}^{\beta-1} \sum_{n=0}^{m+\beta-1}
+ \frac{e_{m,n}  (y+\xi)^m [ (x+\xi)(z+\xi)] ^{ \beta }
+         (x+y+2\xi)^{n} }{ 
+  (x+y+2\xi)^{\beta +m} (x+y+z+3\xi)^{\beta +n} } $ \\
+
+ $(1)(3)(2)$ &  `` &
+$ \sum_{m=0}^{\beta-1} \sum_{n=0}^{m+\beta-1}
+ \frac{e_{m,n}  (x+\xi)^m [ (y+\xi)(z+\xi)] ^{ \beta }
+         (x+z+2\xi)^{n} }{ 
+  (x+z+2\xi)^{\beta +m} (x+y+z+3\xi)^{\beta +n} } $ \\
+
+ $(2)(3)(1)$ & `` &
+$ \sum_{m=0}^{\beta-1} \sum_{n=0}^{m+\beta-1}
+ \frac{e_{m,n}  (y+\xi)^m [ (z+\xi)(x+\xi)] ^{ \beta }
+         (y+z+2\xi)^{n} }{ 
+  (y+z+2\xi)^{\beta +m} (x+y+z+3\xi)^{\beta +n} } $ \\
+
+ $(3)(1)(2)$ &  `` &
+$ \sum_{m=0}^{\beta-1} \sum_{n=0}^{m+\beta-1}
+ \frac{e_{m,n}  (z+\xi)^m [ (x+\xi)(y+\xi)] ^{ \beta }
+         (x+z+2\xi)^{n} }{ 
+  (x+z+2\xi)^{\beta +m} (x+y+z+3\xi)^{\beta +n} } $ \\
+
+ $(3)(2)(1)$ &  `` &
+$ \sum_{m=0}^{\beta-1} \sum_{n=0}^{m+\beta-1}
+ \frac{e_{m,n}  (z+\xi)^m [ (x+\xi)(y+\xi)] ^{ \beta }
+         (y+z+2\xi)^{n} }{ 
+  (y+z+2\xi)^{\beta +m} (x+y+z+3\xi)^{\beta +n} } $ \\
+\hline
+\end{tabular}
+\end{table}
+
+A strictly positive multivariate polynomial $\phi(x,y,z)$ is required
+that can convert the left-hand-side of~(\ref{eq:d1}) into a polynomial
+by the canceling of denominator factors.  Specifically, $\phi = \phi_1 \phi_2$
+where $\phi_1(x,y,z)$ controls factors in ${\rm center}(\eta)$ and
+$\phi_2(x,y,z)$ controls factors in $P_{\rm ord}(\eta)$.  Inspection suggests
+taking $\phi_1(x,y,z)$ equal to
+\begin{eqnarray*}
+(x+y+z+\xi)^{\beta+2\alpha} \left[ (x+y+\xi) 
+   (x+z+\xi)(y+z+\xi) \right]^{\beta + \alpha}
+  \left[ (x+\xi)(y+\xi)(z+\xi) \right]^{\beta} 
+\end{eqnarray*}
+and $\phi_2(x,y,z)$  equal to
+\begin{eqnarray*}
+ &&  (x+y+z + 2\xi)^{2\beta+\alpha-1}
+  \left[ (x+y+2\xi)(x+z+2\xi)(y+z+2\xi) \right]^{2\beta -1 } \\
+ && \times
+ ( x+y+z+3\xi)^{3\beta-2} 
+\end{eqnarray*}
+Observe that the degree of $x$ in the polynomial $\phi=\phi_1 \phi_2$
+is $13\beta+5\alpha -5$.  Indeed this is also the degree of $y$ and the
+degree of $z$ by symmetry.  These degrees are reduced in the polynomial
+$f_\eta = \phi(x,y,z) \,
+{\rm center}( \eta ) \, P_{\rm ord}(\eta)$ by factors
+in the denominators of ${\rm center}(\eta)$ and $P_{\rm ord}(\eta)$. 
+ For example, if $\eta=(12)(3)$, then
+\begin{eqnarray*}
+f_\eta &=& 
+(x+y+z+\xi)^{\beta+2\alpha} \left[ 
+   (x+z+\xi)(y+z+\xi) \right]^{\beta + \alpha}
+  \left[ (x+\xi)(y+\xi) \right]^{\beta}  \\
+ &\times& 
+ \left[ (x+y+2\xi)(x+z+2\xi)(y+z+2\xi) \right]^{2\beta -1 }
+ ( x+y+z+3\xi)^{3\beta-2} \\
+ & \times &
+ \sum_{m=0}^{\beta+ \alpha-1}  e_m ( z + \xi)^{\beta}
+               (x+y+\xi)^{m}  (x+y+z+2\xi)^{\beta +\alpha-1 - m },  
+\end{eqnarray*}
+which is a polynomial of
+ degree $11\beta+4\alpha-5$, in both $x$ and $y$, and
+of degree $12 \beta + 5\alpha-5$ in $z$. A similar construction is possible 
+for all structures; Table~\ref{tab3} records the degrees
+ of $x$, $y$, and $z$ in all component polynomials $f_\eta$.
+
+\begin{table}[h]
+\caption{Degree of $x,y$, and $z$ in the multivariate polynomials 
+ $f_\eta  = \phi(x,y,z)
+ \, {\rm center}(\eta) \, P_{\rm ord}(\eta)$. Recall $\beta=\alpha_0 +
+ \alpha$ and both $\alpha$ and $\alpha_0$ are positive integers. \label{tab3}}
+\vspace{.1in}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+structure $\eta$  & degree$(x)$ & degree$(y)$ & degree$(z)$ \\ \hline
+ $(123)$ &   $11\beta+4\alpha-4$ & $11\beta+4\alpha-4$ & $11\beta+4\alpha-4$\\
+ $(12)(3)$ & $11\beta+4\alpha-5$ & $11\beta+4\alpha-5$ & $12\beta+5\alpha-5$\\
+ $ (3)(12)$& $12\beta+4\alpha-5$ & $12\beta+4\alpha-5$ & $11\beta+4\alpha-5$\\ 
+ $(13)(2)$ & $11\beta+4\alpha-5$ & $12\beta+5\alpha-5$ & $11\beta+4\alpha-5$\\
+ $ (2)(13)$ &$12\beta+4\alpha-5$ & $11\beta+4\alpha-5$ & $12\beta+4\alpha-5$\\
+ $(1)(23)$ & $11\beta+4\alpha-5$ & $12\beta+4\alpha-5$ & $12\beta+4\alpha-5$\\
+ $(23)(1)$ & $12\beta+5\alpha-5$ & $11\beta+4\alpha-5$ & $11\beta+4\alpha-5$\\
+ $(1)(2)(3)$&$10\beta+5\alpha-5$ & $11\beta+5\alpha-5$ & $12\beta+5\alpha-5$\\ 
+ $(2)(1)(3)$&$11\beta+5\alpha-5$ & $10\beta+5\alpha-5$ & $12\beta+5\alpha-5$\\
+ $(1)(3)(2)$&$10\beta+5\alpha-5$ & $12\beta+5\alpha-5$ & $11\beta+5\alpha-5$\\
+ $(2)(3)(1)$&$12\beta+5\alpha-5$ & $10\beta+5\alpha-5$ & $11\beta+5\alpha-5$\\
+ $(3)(1)(2)$&$11\beta+5\alpha-5$ & $12\beta+5\alpha-5$ & $10\beta+5\alpha-5$\\
+ $(3)(2)(1)$&$12\beta+5\alpha-5$ & $11\beta+5\alpha-5$ & $10\beta+5\alpha-5$\\ 
+\hline
+\end{tabular}
+\end{table}
+ 
+Having introduced the multiplier $\phi$, the linear independence~(\ref{eq:d1}) 
+ is equivalent to the assertion that polynomial equation
+\begin{eqnarray}
+\label{eq:d2}
+\sum_\eta a_\eta \, c_\eta \,  f_\eta(x,y,z) = 0  \qquad {\mbox 
+ {\rm for all $x,y,z >0$ } }
+\end{eqnarray}
+implies $a_\eta=0$ for all $\eta$.  Fixing any $y$ and $z$, the
+left-hand-side of
+ equation~(\ref{eq:d2}) is a polynomial in $x$, with degree $12\beta + 5 \alpha -5$, according
+to Table~\ref{tab3}.  Indeed terms associated with structures
+ $\eta = (23)(1)$, $(2)(3)(1)$, and $(3)(2)(1)$ all contribute monomials
+with that highest power in $x$.  The coefficient of $x^{12\beta+5\alpha-5}$,
+denoted $d=d(a,y,z)$, equals
+\begin{eqnarray*}
+ a_{(23)(1)} c_{(23)(1) } f'_{(23)(1)} + 
+a_{(2)(3)(1)} c_{(2)(3)(1) } f'_{(2)(3)(1)} + 
+a_{(3)(2)(1)} c_{(3)(2)(1) } f'_{(2)(3)(1)} 
+\end{eqnarray*}
+where $f'$ indicates contributions from respective terms within $f_\eta$.
+This coefficient $d$ must equal zero, for all $y$ and $z$;
+after all, a degree $12\beta + 5 \alpha-5$ polynomial
+ can equal zero in $x$ for at most
+that many $x$ values, unless the coefficient $d$ is exactly zero; and we are asking
+that it equal zero at all values of $x$.   From this study of the high-power
+coefficient in $x$, we have reduced consideration
+ to three structures and are able to focus on
+$d=d(a,y,z)$ as a bivariate polynomial in $y$ and $z$ (Table~\ref{tab4}).
+
+\begin{table}[h]
+\caption{Degrees of $y$, and $z$ in three terms of the bivariate polynomial
+ $d(a,y,z)$. This is a subset of Table~\ref{tab3}. \label{tab4}}
+\vspace{.1in}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+structure $\eta$  & degree$(y)$ & degree$(z)$ \\ \hline
+ $(23)(1)$ &  $11\beta+4\alpha-5$ & $11\beta+4\alpha-5$\\
+ $(2)(3)(1)$& $10\beta+5\alpha-5$ & $11\beta+5\alpha-5$\\
+ $(3)(2)(1)$& $11\beta+5\alpha-5$ & $10\beta+5\alpha-5$\\ 
+\hline
+\end{tabular}
+\end{table}
+ 
+The initial argument focusing on the degree of $x$ can 
+be adapted to study other variables in Table~\ref{tab4}.
+With degree of $y$ equal to $11\beta + 5\alpha-5$, for instance,
+ it must be that the coefficient 
+$d'(z)$, say, of
+$y^{11\beta+5\alpha-5}$ equals zero for all $z$. After all, the
+polynomial can
+equal zero at at most $11\beta+5\alpha-5$ $y$ values, and we require
+it to be zero at all $y$.  But all contributions
+to that coefficient are strictly positive, except possibly $a_{(3)(2)(1)}$,
+hence we conclude $a_{(3)(2)(1)} = 0$. By the same token, working with
+the degree $11\beta+5\alpha-5$ term in $z$, it follows that $a_{(2)(3)(1)} = 0$,
+which then forces $a_{(23)(1)}=0$, because we require $d=0$ overall.
+ Three rows from Table~\ref{tab3} have been eliminated (i.e., forced $a_\eta=0$), all those in which
+the mean of the first variable is 
+ greater than the other two means.  Next, return to
+the reduced table, and focus, say, on structures $(13)(2)$, $(1)(3)(2)$,
+and $(3)(1)(2)$, in which the second variable has mean greater than 
+ the others.  
+In doing so, three more coefficients $a_{(13)(2)} = a_{(1)(3)(2)} 
+ = a_{(3)(2)(1)} = 0$ are forced,  and Table~2 is further reduced 
+ to seven rows. Then
+the argument is repeated to get $a_{(12)(3)} = a_{(1)(2)(3)} = a_{(2)(1)(3)} = 0$,
+and it remains to assess coefficients $a_\eta$ of 
+ the four structures in Table~\ref{tab5}.
+
+\begin{table}[h]
+\caption{ Final subtable\label{tab5}}
+\vspace{.1in}
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+structure $\eta$  & degree$(x)$ & degree$(y)$ & degree$(z)$ \\ \hline
+ $(123)$ &   $11\beta+4\alpha-4$ & $11\beta+4\alpha-4$ & $11\beta+4\alpha-4$\\
+ $ (3)(12)$& $12\beta+4\alpha-5$ & $12\beta+4\alpha-5$ & $11\beta+4\alpha-5$\\ 
+ $ (2)(13)$ &$12\beta+4\alpha-5$ & $11\beta+4\alpha-5$ & $12\beta+4\alpha-5$\\
+ $(1)(23)$ & $11\beta+4\alpha-5$ & $12\beta+4\alpha-5$ & $12\beta+4\alpha-5$\\ \hline
+\end{tabular}
+\end{table}
+
+The argument is repeated in this domain, knowing that all but four terms
+in (\ref{eq:d2}) have been eliminated.  
+ The degree of $x$ is $12\beta+4\alpha-5$,
+and there are contributions from both $\eta=(3)(12)$ and $\eta=(2)(13)$. 
+ But then 
+restricted to these rows we get $a_{(3)(12)}=0$ because the
+coefficient of $x^{12\beta+4\alpha-5}$ as a polynomial in $y$ has
+degree $12\beta+4 \alpha-5$.  The remaining constants $a_\eta$ are
+similarly zero, completing the proof in the no-replicate ($m=1$),
+three group $(p=3)$ case.  
+
+The balanced three group case follows suit, noting that
+now $x$, $y$, and $z$ are sums taken, respectively, across
+replicates in each of the three groups.  The product statistic is
+not $xyz$, but anyway it is common to all components and thus cancels
+in the linear combination test function.  The observation-related
+shape parameter $\alpha$ is replaced by $m\alpha$.   The two-dimensional
+$(p=2)$ case is simpler and is left as an exercise.  $\Box$
+
+\clearpage
+
+\section*{Appendix C}
+
+\noindent
+{\em Strict concavity of log-likelihood and proof of Theorem~4}.
+Let $q$ denote the number of non-null structures, and
+consider the log-likelihood $l(\pi)$ in~(\ref{eq:loglik}) to be
+on $\mathbb{R}^q$, with the null probability defined
+secondarily as $\pi_{0} = 1 - \sum_{\eta \neq \eta_0} \pi_\eta$.
+This way we need not invoke Lagrange multipliers to compute derivatives of
+$l(\pi)$.  By calculus, the $q\times q$ Hessian $H$ of negative 2$nd$ derivatives
+of $l(\pi)$ has $(ij)th$ entry
+\begin{eqnarray*}
+H_{ij} &=&  \sum_g  \frac{\left[ p(x_g|\eta_i) - p(x_g|\eta_0)\right]
+ \left[ p(x_g|\eta_j) - p(x_g| \eta_0) \right] }
+      {[ p(x_g)]^2} \\
+ &=& \sum_g f_i( x_g ) \, f_j(x_g)
+\end{eqnarray*}
+where $p(x_g)$ is the marginal density obtained by mixing over structures,
+as in~(\ref{eq:mix}), and $f_i(x) = \left[ p(x|\eta_i) - p(x|\eta_0) \right]/
+ p(x) $. Now let $a=(a_\eta)$ be a $q-$vector of constants.  To determine
+curvature of the log-likelihood we consider the quadratic form
+\begin{eqnarray*}
+ a^T H a &=& \sum_{i=1}^q \sum_{j=1}^q 
+      a_i a_j \sum_g f_i(x_g) f_j(x_g) \\
+ &=& \sum_g \left( \sum_{i=1}^q a_i f_i(x_g) \right)^2 \\
+ &=& \sum_g \left[ T_a(x_g) \right]^2
+\end{eqnarray*}
+where $T_a(x) = \sum_{i=1}^q a_i f_i(x)$.  Clearly $a^T H a \geq 0$ regardless
+ of $a$, and so $H$ is non-negative definite and $l(\pi)$ is concave. 
+To establish {\em strict} concavity requires that we show $T_a(x_g) = 0$ for
+all $g$ if and only if $a=0$. The following lemma shows that knowing $T_a(x_g)=0$
+for all $G$ values $x_g$ is enough to force $T_a(x)=0$ for all $x$, as long
+as $G$ is sufficiently large.  But then $a=0$ by the linear independence 
+assumption, completing the proof.
+
+
+\begin{lemma}
+Let $\psi(x)$ be a multivariate polynomial in $x \in \mathbb{R}^n$, and 
+let $X_1, X_2, \ldots, X_m$ denote a random sample from a continuous 
+distribution on $\mathbb{R}^n$. If $m$ is at least as large as the number
+ of monomials in $\psi$, then, with probability one, $\psi(X_i) = 0$ for $i=1,2,
+\ldots, m$ implies $\psi(x) = 0$ for all $x$.
+\end{lemma}
+
+\noindent
+{\em Proof of Lemma 1}. Every point $X_i$ puts a linear condition on the space
+ of coefficients of $\psi$. It needs to be verified that these conditions are
+ linearly independent. Suppose that the first $k$ conditions are linearly
+ independent, so the space of $\psi$'s that are zero at $X_1, \ldots, X_k$
+ has dimension (number of monomials in $\psi$) minus $k$.  Pick one such
+ nonzero polynomial, and call it $\phi$.  Since $\phi = 0$ is a set
+ with positive codimension, we may assume (with probability one) that $\phi(X_{k+1})$
+ is not zero. Then, if we impose the additional condition $\psi(X_{k+1})=0$,
+ the dimension of the solution space drops by at least one, hence it drops
+ by one.  Letting $k$ increase from $1$ to $m$ completes the proof.
+$\Box$
+
+\section*{Appendix D} {\em Further details of numerical examples.}
+The parameters $\alpha, \alpha_0,$ and $\nu_0$
+were fixed at values obtained by first fitting the unordered gamma-gamma
+mixture model in \verb+EBarrays+, without a null structure but
+otherwise allowing all possible unordered structures. 
+ Shape parameters were then rounded
+to the nearest positive integer (Table 7)  and all three
+parameters were plugged into the {\em EM} procedure to
+fit the proposed mixture model proportions $\pi_\eta$.
+To simplify EM calculations in the four examples having more than
+five groups, the full set of ordered structures was filtered to 
+a reduced set based on the fitting of the unordered gamma-gamma model
+in EBarrays.  Each ordered structure  corresponds to exactly
+one unordered structure (a many to one mapping).  
+ If no gene had a high (greater than 0.5) 
+probability of mapping to a given unordered structure, then we deemed all
+corresponding ordered structures to have $\pi_\eta = 0$.
+
+\begin{table}[h]
+\caption{Parameter estimates (not including mixing proportions) from 
+ the examples analyzed. 
+ The last column indicates the number of functional categories
+in GO and KEGG having at least five annotated genes, which were used
+in the development of Figure~4. KEGG was not available for GDS1937,
+and so this data set was not used in Figure~4. }
+\centering
+\begin{tabular}{rrrrr}
+data set &  $\alpha$  & $\alpha_0$  &     $\nu_0$  & \# GO/KEGG   \\ \hline 
+ Edwards &   113   &  1   & 586.5 & \\
+GDS2323 &    14   &   1     &  119.1&  3849/184 \\
+GDS1802 &    17   &   1     &   46.8&  3619/182 \\
+GDS2043 &    22   &   1     &   47.7& 3619/182 \\
+GDS2360 &     8   &   1     &   15.8& 3258/175 \\
+GDS599  &    12   &   1     &    0.01&  3180/159  \\
+GDS812  &     5   &   1     &   15.4& 3258/175 \\ 
+GDS1937 &     6   &   1     &   20.5&  NA \\
+GDS568  &    10   &   1     &   37.1& 3258/175 \\
+GDS2431 &     4   &   1     &   67.6&  4085/188 \\
+GDS587  &     8   &   1     & 9999.2 &  1876/127 \\
+GDS586  &    13   &   1     & 4566.2& 3258/175 \\ \hline
+\end{tabular}
+\end{table}
+
+
+\section*{Acknowledgements} We thank Lev Borisov for the proof of Lemma 1,
+ and Christina Kendziorski and an AoS associate editor
+  for comments that improved the development
+ of this work,  which was
+ supported in part by grants R01 ES017400 and T32 GM074904 
+ from the National Institutes
+  of Health.  We thank reviewers in advance for any useful comments.
+
+
+\nocite{r2}
+
+\begin{thebibliography}{9}
+
+%\bibitem{r1}
+%\textsc{Billingsley, P.} (1999). \textit{Convergence of
+%Probability Measures}, 2nd ed.
+%Wiley, New York.
+%\MR{1700749}
+
+%
+%\bibitem{r2}
+%\textsc{Bourbaki, N.}  (1966). \textit{General Topology}  \textbf{1}.
+%Addison--Wesley, Reading, MA.
+
+%\bibitem{r3}
+%\textsc{Ethier, S. N.} and \textsc{Kurtz, T. G.} (1985).
+%\textit{Markov Processes: Characterization and Convergence}.
+%Wiley, New York.
+%\MR{838085}
+
+%\bibitem{r4}
+%\textsc{Prokhorov, Yu.} (1956).
+%Convergence of random processes and limit theorems in probability
+%theory. \textit{Theory  Probab.  Appl.}
+%\textbf{1} 157--214.
+%\MR{84896}
+
+\bibitem{camp:06}
+\textsc{Campbell, E.A., O'Hara, L., Catalano, R.D., Sharkey, A.M., Freeman, T.C., and Johnson, M.H.} (2006).
+Temporal expression profiling of the uterine luminal epithelium of the pseudo-pregnant mouse suggests receptivity to the fertilized egg is associated with complex transcriptional changes.
+\textit{Human Reproduction},
+\textbf{21}, 2495--2513.
+
+\bibitem{dahl:07} 
+\textsc{Dahl, D.B. and Newton, M.A.} (2007).
+Multiple hypothesis testing by clustering treatment effects.
+\textit{Journal of the American Statistical Association},
+\textbf{102}, 517--526.
+
+\bibitem{denn:pati:84}
+\textsc{Dennis, B. and Patil, G.P.} (1984).
+The gamma distribution and weighted multimodal gamma distributions as
+ models of population abundance.
+\textit{Mathamatical Biosciences}, \textbf{68}, 187--212.
+
+\bibitem{doksum}
+\textsc{Doksum, K.A. and Ozeki, A.} (2008).
+Semiparametric models and likelihood-the power of ranks.
+In, \textit{Proceedings of the Third Erich L. Lehmann Symposium}.
+
+\bibitem{edgar}
+\textsc{Edgar, R., Domrachev, M., and Lash, A.E.} (2002).
+Gene expression omnibus: NCBI gene expression and hybridization array
+ data repository,
+\textit{Nucleic Acids Research}, \textbf{30}, 207--210.
+
+\bibitem{edwards}
+\textsc{Edwards, M., Sarkar, D., Klopp, R., Morrow, J., Weindruch, R.,
+	and Prolla, T.} (2003).
+Age-related impairment of the transcriptional response to oxidative stress
+ in the mouse heart.
+\textit{Physiological Genomics}, \textbf{13}, 119--127.
+
+\bibitem{eisen}
+\textsc{Eisen, MB, Spellman, PT, Brown, PO, and Botstein, D }
+ (1998).
+ Cluster analysis and display of genome-wide expression patterns.
+ \textit{Proceedings of the National Academy of Sciences}. 
+ \textbf{95}, 14863--14868.
+
+\bibitem{fral:raft:02}
+\textsc{Fraley, C., and Raftery, A.E.} (2002). 
+ Model-based clustering,
+     discriminant analysis, and density estimation. 
+ \textit{Journal of the American Statistical Association}
+ \textbf{97}, 611--631.
+
+\bibitem{gelman04}
+\textsc{Gelman, A.,  Carlin, J.B.,  Stern, H.S., and Rubin, D.B.} 
+ (2004). 
+\textit{ Bayesian data analysis.} 2nd edition. Chapman and Hall.
+
+\bibitem{gira}
+\textsc{Girardot, F., Monnier, V., Tricoire, H.} (2004).
+Genome wide analysis of common and specific stress responses in adult
+drosophila melanogaster.
+\textit{BMC Genomics}, \textbf{5}, 74.
+
+\bibitem{gras:08}
+\textsc{Grasso,L.C., Maindonald, J., Rudd, S., Hayward, D.C., Saint, R., Miller, D.J., and Ball, E.E.} (2008).
+Microarray analysis identifies candidate genes for key roles in coral 
+ development. 
+\textit{BMC Genomics}, \textbf{9}, 540.
+
+\bibitem{htf01}
+ \textsc{Hastie, T., Tibshirani, R., and Friedman, J.} (2001).
+\textit{The elements of statistical learning}.
+ Springer-Verlag, New York.
+\bibitem{ha:85}
+\textsc{Hubert, L. and Arabie, P.} (1985).
+Comparing partitions.
+\textit{Journal of Classification},
+\textbf{2}, 193-218.
+
+\bibitem{gy20}
+\textsc{Greenwood, M. and Yule, G.U.} (1920).
+An inquiry into the nature of frequency distributions representative of
+ multiple happenings with particular reference to the occurrence of multiple
+ attacks of disease or of repeated accidents.
+\textit{Journal of the Royal Statistical Society}, \textbf{83}, 255--279.
+
+\bibitem{holz:gnei:06}
+\textsc{Holzmann, H., Munk, A., and Gneiting, M.} (2006).
+Identifiability of finite mixtures of elliptical distributions.
+\textit{Scandinavian Journal of Statistics}, 
+\textbf{33}, 753--763.
+
+\bibitem{hutch81}
+\textsc{Hutchinson, T.P.} (1981). 
+ Compound gamma bivariate distributions.
+ \textit{Metrika}, \textbf{28}, 263--271.
+
+\bibitem{jensen}
+\textsc{Jensen, S.T., Erkan, I., Arnardottir, E.S., and Small, D.S.} (2009).
+Bayesian testing of many hypotheses $\times$ many genes: a study of sleep
+apnea. 
+\textit{Annals of Applied Statistics}, to appear.
+
+\bibitem{keles:07}
+\textsc{Keles, S.} (2007).
+Mixture modeling for genome-wide localization of transcription factors.
+\textit{Biometrics}, \textbf{63}, 10-21.
+
+\bibitem{kend:03}
+\textsc{Kendziorski, C.M., Newton, M.A., Lan, H., and  Gould, M.N.} (2003).
+ On parametric empirical Bayes methods for comparing multiple groups using
+ replicated gene expression profiles.  
+\textit{Statistics in Medicine}, \textbf{22}, 3899--3914.
+
+\bibitem{kend:06}
+\textsc{Kendziorski, C.M.,  Chen, M., Yuan, M. Lan, H., and Attie, A.D.} (2006).
+Statistical methods for expression quantitative trait loci (eQTL) mapping.
+\textit{Biometrics}, \textbf{62}, 19-27.
+
+\bibitem{fg}
+\textsc{Kschischang, R., Frey, B.J., and Loeliger, H.A.} (2001).
+Factor graphs and the sum-product algorithm.
+\textit{IEEE Transactions on information theory}, 
+\textbf{47}, 498--519.
+
+\bibitem{logot:06}
+\textsc{Lo, K. and Gottardo, R} (2007).
+Flexible empirical Bayes models for differential gene expression.
+\textit{Bioinformatics}, \textbf{23}, 328--335.
+
+\bibitem{rna:08}
+\textsc{Marioni, J.C., Mason, C.E., Mane, S.M., Stephens, M., and Gilad, Y.} (2008).
+RNA-seq: An assessment of technical reproducibility and comparison with gene
+expression arrays.
+\textit{Genome Research}, \textbf{18}, 1509-1517.
+
+\bibitem{mccu:neld:89}
+\textsc{McCullagh, P. and  Nelder, J.A.} (1989). 
+\textit{Generalized linear models}, 2nd edition.
+ Chapman and Hall.
+
+\bibitem{mcla:basf:88}
+\textsc{McLachlan, G.J. and Basford, K.E.} 1988. 
+\textit{Mixture models: inference and
+ applications to clustering.}
+ Marcel Dekker, New York.
+
+\bibitem{mcla:peel:00}
+\textsc{McLachlan, G.J. and Peel, D.} (2000).
+ \textit{Finite mixture models}.
+ Wiley, New York.
+
+\bibitem{med1}
+\textsc{Medvedovic, M., Yeung, K.Y., and Bumgarner, R.E.} (2004).
+Bayesian mixture model based clustering of replicated microarray data.
+\textit{Bioinformatics}, \textbf{20}, 1222--1232.
+
+\bibitem{mo:08}
+\textsc{Mortazavi, A., Williams, B.A., McCue, K., Schaeffer, L. and Wold, B.}
+Mapping and quantifying mammalian transcriptomes by RNA-Seq.
+\textit{Nature Methods},
+\textbf{5}, 621-628.
+
+\bibitem{newt:04}
+\textsc{Newton, M.A.,
+ Noueiry, A.,  Sarkar, D., and  Ahlquist P.} (2004).
+ Detecting differential
+gene expression with a semiparametric hierarchical mixture method.
+ \textit{Biostatistics}, \textbf{5}, 155--176.
+
+\bibitem{newt:07}
+\textsc{Newton, M.A., Quintana, F.A., den Boon, J.A., Sengupta, S., and Ahlquist, P.} (2007).
+ Random-set methods identify distinct aspects of the enrichment signal in gene-set analysis.
+\textit{Annals of Applied Statistics}, \textbf{1}, 85--106.
+
+
+\bibitem{parm:03}
+\textsc{Parmigiani, G., Garett, E.S., Irizarry, R.A., Zeger, S.L. (eds)} (2003).
+\textit{The analysis of gene expression data: methods and software }
+Springer.
+
+\bibitem{rabiner}
+\textsc{Rabiner, L.R.} (1989).
+A tutorial on hidden markov models and selected applications in speech recognition.
+\textit{Proceedings of the IEEE}, \textbf{77}, 257--286.
+
+%\bibitem{rand}
+%\textsc{Rand, W.M.} (1971).
+%Objective criteria for the evaluation of clustering methods.
+%\textit{Journal of the American Statistical Association},
+%\textbf{66}, 846--850.
+
+\bibitem{redn84}
+\textsc{Redner, R.A. and Walker, H.F.} (1984). 
+ Mixture densities, maximum likelihood and the EM algorithm. 
+\textit{SIAM Rev.} \textbf{26}, 195--239.
+
+\bibitem{remp:pawl:08}
+\textsc{Rempala, G.A. and Pawlikowska, I.} (2008).
+Limit theorems for hybridization reactions on
+oligonucleotide microarrays.
+\textit{Journal of Multivariate Analysis}, \textbf{99}, 
+ 2082--2095.
+
+\bibitem{rs:07}
+\textsc{Robinson, M.D.  and Smyth, G.K.} (2007).
+Moderated statistical tests for assessing differences in tag abundance.
+\textit{Bioinformatics},
+\textbf{23}, 2881-2887.
+
+
+\bibitem{ross:09}
+\textsc{Rossell, D.} (2009).
+GaGa: a parsimonious and flexible model for high-throughput data analysis
+\textit{Annals of Applied Statistics}, \textbf{3}, in press.
+
+\bibitem{smyth04}
+\textsc{Smyth, G.K.} (2004).
+ Linear models and empirical Bayes methods for assessing differential
+ expression in microarray experiments.
+\textit{Statistical Applications in Genetics and Molecular Biology}, 
+ \textbf{3}, no 1, article 3.
+
+\bibitem{sobel}
+\textsc{Sobel, M. and Frankowski, K.} (1994).
+The 500th anniversary of the sharing problem (the oldest problem in the
+theory of probability).
+\textit{American Mathematical Monthly}, \textbf{101}, 833--847.
+
+\bibitem{speed}
+\textsc{Speed, T. (ed)} (2004). 
+\textit{Statistical analysis of gene expression microarray data.} 
+ Chapman and Hall/CRC.
+
+\bibitem{step:00}
+\textsc{Stephens, M.} (2000). 
+Dealing with label switching in mixture models.
+\textit{Journal of the Royal Statistical Society, Series B},
+ \textbf{62}, 795--809.
+
+\bibitem{stern90}
+\textsc{Stern, H.} (1990).
+ Models for distributions on permutations.
+\textit{Journal of the American Statistical Association},
+\textbf{85}, 558--564.
+
+\bibitem{stotibs:03}
+\textsc{Storey, J.D. and Tibshirani, R.} (2003).
+Statistical significance for genome-wide studies.
+\textit{Proceedings of the National Academy of Sciences},
+\textbf{100}, 9440--9445.
+
+
+%\bibitem{teic:63}
+%\textsc{Teicher, H.} (1963).
+%Identifiability of finite mixtures.
+%\textit{Annals of Mathematical Statistics}, \textbf{34}, 1265--1269.
+
+\bibitem{clust06}
+\textsc{Thalamuthu, A., Mukhapadhyay, I., Zheng, X., and Tseng, G.C.} (2006).
+Evaluation and comparison of gene clustering methods in microarray
+analysis.
+\textit{Bioinformatics},
+\textbf{22}, 2405-2412.
+
+\bibitem{tsm85}
+\textsc{Titterington, D.M., Smith, A.F.M., and Makov, U.E.} (1985).
+\textit{Statistical analysis of finite mixture distributions}.
+Wiley, New York.
+
+\bibitem{ys68}
+\textsc{Yakowitz, S.J. and Spragins, J.D.} (1968).
+On the identifiability of finite mixtures.
+\textit{Annals of Mathematical Statistics}, \textbf{39}, 209--214.
+
+\bibitem{yuan:kend:06a}
+\textsc{Yuan, M. and Kendziorski, C.M.} (2006a).
+A unified approach for simultaneous gene clustering and differential
+expression identification.
+\textit{Biometrics}, \textbf{62}, 1089--1098.
+
+\bibitem{yuan:kend:06b}
+\textsc{Yuan, M. and Kendziorski, C.M.} (2006b).
+Hidden Markov models for time course data in multiple biological conditions
+ (with discussion).
+\textit{Journal of the American Statistical Association}, 
+ \textbf{101}, 1323-1340.
+
+
+\end{thebibliography}
+
+\end{document}

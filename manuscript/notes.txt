@@ -1,0 +1,20 @@
+
+Started 9/1/09
+
+Code and Text on the algorithmic structure behind computing
+
+P( Z_1 > Z_2 > ... > Z_K ) for independent
+
+Z_k ~ Gamma( a_k, rate=lambda_k ), for integers a_1, ..., a_K
+
+9/3/09:  I get the standard backward recursion (novit.R) and
+        the viterbi normalized recursion (vit1.R) working in R
+ 
+        Next I want to make a packageable R function that handles
+        various exceptional cases...
+
+      See ~newton/src/Rlibs/grankp for source
+      and ~newton/Rlibs/grankp_1.0.tar.gz  for built package!
+      
+
+http://jblevins.org/notes/log-sum-exp

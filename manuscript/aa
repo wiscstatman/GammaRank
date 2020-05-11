@@ -1,0 +1,85 @@
+  Specifically, it is required to
+ calculate the probability $P(E)$ of the event
+ \begin{eqnarray}
+\label{eq:e}
+ E = \left\{ Z_1 > Z_2 > \ldots > Z_K \right\}
+ \end{eqnarray} 
+ where $\{ Z_k: k=1,2,\ldots, K \}$ 
+ are mutually independent gamma distributed random
+ variables with possibly different shapes
+ $a_1, a_2, \ldots, a_K$  and rates $\lambda_1, \lambda_2, \ldots, \lambda_k$.
+ In the special case $K=2$, the event in 
+two gamma-distributed variables is equivalent to the $E' =
+  \left\{ B > \lambda_2/(\lambda_1 + \lambda_2)\right\}$, 
+  where $B$ is a Beta$(a_1,a_2)$ distributed variable. 
+ Thus $P(E)=P(E')$ can be computed
+ by standard numerical approaches for the Beta distribution.
+  Although a similar representation
+is possible for Dirichlet-distributed vectors when $K>2$, a direct numerical
+approach is not clearly indicated.
+  In modeling permutation data, Stern (1990)
+presented a formula for $P(E)$ for any value $K$, but
+ assuming common shape
+parameters $a_k = a$.  Sobel and Frankowski (1994) calculated $P(E)$ for 
+$K < 5$ and assuming constant rates $\lambda_k = \lambda$, but to our 
+knowledge a general formula has not been developed.
+A Monte Carlo approximation is certainly feasible,  but
+a fast and accurate 
+ numerical approach would be preferable for computational efficiency: 
+target values may be small, and 
+ $P(E)$ may need to be recomputed for many shape and rate settings.
+
+There is an efficient numerical approach to computing $P(E)$ when
+ shapes $a_k$ are positive integers. The approach involves
+embedding $\left\{ Z_k \right\}$ in a collection
+of independent Poisson processes $\left\{ \mathbb{N}_k \right\}$, 
+where $k=1,2, \ldots, K$. Specifically,
+let $\mathbb{N}_k$ denote a Poisson process on $(0, \infty)$ with rate
+$\lambda_k$.  So $\mathbb{N}_k(0,t] \sim {\mbox {\rm Poisson}}( t \lambda_k )$,
+for example.  Of course, gaps between points in $\mathbb{N}_k$ are 
+independent and 
+ exponentially distributed, and the gamma-distributed
+ $Z_k$ can be constructed by summing the first $a_k$  gaps,
+\[
+ Z_k = \min\left\{ t>0: \mathbb{N}_k(0,t] \geq a_k \right\}. \]
+Next, form processes $\left\{ \mathbb{M}_k \right\}$ by
+accumulating points in the originating processes:
+ $ \mathbb{M}_k = \sum_{j=1}^k \mathbb{N}_j $.
+Marginally $\mathbb{M}_k$ is a Poisson process with rate
+ $\Lambda_k = \sum_{j=1}^k \lambda_j$, but over $k$ the
+processes are dependent owing to overlapping points. 
+ To complete the construction define
+count random variables $M_1, M_2, \ldots, M_{K-1}$ by
+\begin{eqnarray}
+\label{eq:def1}
+M_k = \mathbb{M}_k\left( 0, Z_{k+1} \right].
+\end{eqnarray}
+It is immediate that each $M_k$ has a marginal negative
+binomial distribution: the gamma distributed
+  $Z_{k+1}$ is independent of $\mathbb{M}_k$;
+conditioning on $Z_{k+1}$
+in~(\ref{eq:def1}) gives a Poisson variable which mixes out to the
+negative binomial (Greenwood and Yule, 1920).  Specifically,
+\begin{eqnarray*}
+M_k \sim {\rm NB}\left({\mbox {\rm shape}} =a_{k+1}, {\mbox {\rm scale}}= 
+   \Lambda_k/\lambda_{k+1} \right),
+\end{eqnarray*} 
+which corresponds to the probability mass function
+\begin{eqnarray}
+\label{eq:nb}
+p_k(m) = \frac{ \Gamma( m+a_{k+1} ) }{ \Gamma( a_{k+1} ) \, \Gamma(m+1) }
+         \left( \frac{\lambda_{k+1}}{\Lambda_{k+1}} \right)^{a_{k+1}} \,
+         \left( \frac{\Lambda_k}{\Lambda_{k+1} } \right)^{m} 
+\end{eqnarray}
+for integers $m \geq 0$.
+The next main finding is
+\begin{theorem} With $E$ as in~(\ref{eq:e}), $M_k$ as in~(\ref{eq:def1}),
+ and $p_k$ as in (\ref{eq:nb}), $P(E)$ equals
+\begin{eqnarray}
+\label{eq:f1}
+\sum_{m_1=0}^{a_1 - 1} \sum_{m_2=0}^{m_1+a_2 -1 }
+   \cdots \sum_{m_{K-1} = 0 }^{m_{K-2} + a_{K-1} - 1 }
+   p_1(m_1) \, p_2(m_2) \, \cdots \, p_{K-1}(m_{K-1}).
+\end{eqnarray}
+\end{theorem}
+
