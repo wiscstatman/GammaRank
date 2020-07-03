@@ -23,7 +23,7 @@ function( shapes, rates=rep(1,length(shapes)), log.p=TRUE )
 	if( !is.integer(shapes) )
 		{
 		warning( "shapes coerced to integers as possible" )
-		shapes <- as.integer(shapes)
+		shapes <- as.integer(round(shapes))
 		}
 	if( any( shapes ) <= 0 )
 		{
