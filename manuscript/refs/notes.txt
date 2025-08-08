@@ -5,3 +5,16 @@ https://proceedings.caaconference.org/files/1997/CD12_Halekoh_Vach_CAA_1997.pdf
 On Plackett-Luce, Teh, and completely random measures with Gamma margins for ranked data
 
 https://www.stats.ox.ac.uk/~teh/research/npbayes/CarTeh2012a.pdf
+
+
+
+citation for apples paper
+http://papers.ssrn.com/sol3/papers.cfm?abstract_id=1330139
+
+
+## nice contemporary ranking paper
+
+https://arxiv.org/html/2406.19563v2
+
+## nice discussion of problems with rank aggregation
+https://en.wikipedia.org/wiki/First-past-the-post_voting
