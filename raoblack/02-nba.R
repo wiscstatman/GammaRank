@@ -92,7 +92,8 @@ for( b in 1:B )
 library(partitions)
 
 ##pp <- partitions::perms(4)  ## the 24 perms
-pp <- partitions::perms(7)  ## the go big
+##pp <- partitions::perms(7)  ## the go big
+pp <- partitions::perms(5)
 
 
 lmarg <- numeric(24)
@@ -100,7 +101,8 @@ nr <- 100
 bst <- rep(NA,nr)
 kp <- rep(FALSE, nplayers)
 #kp[1:4] <- TRUE
-kp[1:7] <- TRUE
+#kp[1:7] <- TRUE
+kp[1:5] <- TRUE
 #
 nplay <- nplayers[kp]
 s1 <- pshapes[kp,1]
@@ -119,6 +121,21 @@ for( j in 1:ncol(pp) )
   print(j)
  }
 ## sum( exp(lmarg) ) = 1 ... it works, well at least with k=4!
+## some slight deviation from r-values owing to rounding of shape params
 
+rv2 <- rvalues( dd, family=binomial, hypers=hyps )  ## to match the integers used in grankp
+## slightly different from rv, of course!
+
+
+## the question is this
+
+## is there something better, which utilizes the joint ranking probabilities,
+## which allows us to summarize inference on every unit's posterior rank
+## i.e., I guess we could say that the posterior probability exceeds such and such
+## that all units have ranks within their posted intervals.  
+
+## by contrast; the marginal posterior inference allows us only to say that each
+## unit is in its interval with such and such probability.
+## it should be a stronger statement to have the simultaneous feature
 
 
