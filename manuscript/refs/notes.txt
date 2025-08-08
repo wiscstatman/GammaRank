@@ -1,0 +1,7 @@
+On seriation
+
+https://proceedings.caaconference.org/files/1997/CD12_Halekoh_Vach_CAA_1997.pdf
+
+On Plackett-Luce, Teh, and completely random measures with Gamma margins for ranked data
+
+https://www.stats.ox.ac.uk/~teh/research/npbayes/CarTeh2012a.pdf
