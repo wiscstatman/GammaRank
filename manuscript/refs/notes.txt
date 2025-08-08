@@ -18,3 +18,7 @@ https://arxiv.org/html/2406.19563v2
 
 ## nice discussion of problems with rank aggregation
 https://en.wikipedia.org/wiki/First-past-the-post_voting
+
+# On Gamma representation of Bradley - Terry...maybe something even more primitive (i.e. cool) than the MM model I learned from Lange
+
+https://www.tandfonline.com/doi/full/10.1080/10618600.2012.638220#d1e460
