@@ -23,15 +23,24 @@ nsim <- 100 ## number of posterior orderings
 lmarg <- numeric(nsim)
 bst <- numeric(B)
 
-# here's for one ordering..could repeat for posterior sample of orderings to get
-# an HPD
+# repeat for posterior sample of orderings to get
+# 
+bigO <- matrix(NA, N, nsim)
+
+# collect up a posterior sample of rankings
 for( isim in 1:nsim )
  {
   # random draw
   lam2 <- rgamma( N, shape= hyps[1]+ dat[,4], rate=hyps[2]+n2 )
   lam1 <- rgamma( N, shape= hyps[1]+ dat[,3], rate=hyps[2]+n1 )
-  oo <- order( -lam1/lam2 )
+  bigO[,isim] <-  order( -lam1/lam2 )
+ }
 
+## for each ranking run RB, using the same seed to reduce MC
+
+for( isim in 1:nsim )
+ {
+  oo <- bigO[,isim]
   set.seed(75751)  ## let's sample posterior of lambda2's  [i.e. ARV] 
   for( i in 1:B )
    {
@@ -48,4 +57,3 @@ for( isim in 1:nsim )
   print(isim)
  }
  
-
