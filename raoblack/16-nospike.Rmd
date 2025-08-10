@@ -1,0 +1,184 @@
+---
+author: "McNeel TCR Enrichment"
+date: '`r Sys.Date()`'
+fontsize: 12pt
+output:
+  html_document: default
+  word_document: default
+  pdf_document:
+    includes:
+      before_body: doc_prefix.tex
+    fig_caption: yes
+---
+
+
+### On calibrating enriched TCRs (take 3)
+
+Project with Ichwaku Rastogi, Wanyi Guo, and Doug McNeel
+
+Report by MAN.
+
+
+Version: `r Sys.Date()`.  A Poisson-model version; supposing no overdispersion
+
+```{r global_options, message=FALSE, warning=FALSE, include=FALSE}
+# version 40; follows version 29, and then adding more GO
+
+knitr::opts_chunk$set(fig.width=6, fig.height=6, fig.path='Figs/',
+                      echo=FALSE, warning=FALSE, message=FALSE)
+#library(kableExtra)
+library(readxl)
+library(fdrtool)
+```
+
+```{r echo=FALSE}
+
+rm( list=ls() )
+## pulled in from 15*
+
+nloglik <- function(par,xx )
+        {
+        ## trim away 0's
+        xxx <- xx[xx>0]
+	# two shapes
+        aa <- par[1];  bb<- par[2]
+        nn <- sum(xxx)
+	pp <- nn/(nn+bb )	
+	#lpsel <- log( 1- (1-pp)^aa )
+	lpsel <- log1p( - (1-pp)^aa )
+	loglik <- xxx*log(pp) + aa*log(1-pp) + lgamma(xxx+aa) - lgamma(aa)-lgamma(xxx+1) - lpsel
+        return( -sum(loglik) )
+        }
+
+getlocalFDR <- function(pars,x,y)
+ {
+   # compute P[null|x,y] for each receptor
+   a <- pars[1]
+   b <- pars[2]
+   n1 <- sum(x); n2 <- sum(y)
+
+   bcut <- (b+n1)/(2*b+n1+n2)
+
+   prob <- pbeta( bcut, shape1=a+x, shape2=a+y )
+ 
+   res <- cbind( x, y, 1-prob )
+   ord <- order(prob, decreasing=TRUE)
+   res2 <- res[ord,]
+   dimnames(res2)[[2]] <- c("ARV","PAP","lfdr")
+   list( results=res2, pars=pars )
+  }
+
+
+```
+
+**Set up:** Data are TCR sequence reads from bulk sequencing of either control (ARV) or treated (PAP)
+participant T cell samples.  Data are paired per receptor (separately for alpha and beta chains),
+with read counts in ARV and PAP per receptor.
+
+Calculations below report the probability, for each TCR, that it is not enriched in the PAP sample, given all the data on that TCR.  This non-enrichment null hypothesis holds that variation in counts between ARV and PAP is purely noise and sampling variation, and does not constitute an increase in the size of the underlying population component represented by that receptor.    
+
+The calculations here produce a `local false discovery rate` or `lfdr` which is a probability, 
+$P( \lambda_1 \geq \lambda_2 | x, y )$, for each receptor, where $x$ is the UMI count for the receptor
+in the control (ARV) condition, $y$ is that count in the PAP condition, and the $\lambda_j$'s are underlying
+Poisson mean parameters per cell.  Specifically, we suppose that $x$ is the realization of a Poisson
+distributed count $X$ with mean $\lambda_1 n_1$, $y$ is the realization of a Poisson distributed count
+$Y$ with mean $\lambda_2 n_2$, and $n_1$ and $n_2$ are respective library sizes, which we take to be the
+total number of UMI counts in ARV and PAP respectively.   The specific formula for `lfdr` comes by
+treating $\lambda_1$ and $\lambda_2$ as independent a priori, with Gamma$(a,b)$ margins.  The full
+collection of counts are used to estimate hyper-parameters $a$ and $b$.  
+
+Receptors with low `lfdr` will
+have high $P( \lambda_2 > \lambda_1 | x, y )$, which corresponds to enrichment in PAP.
+  Calculations reported previously
+allowed UMI counts to have extra-Poisson variation, though without replicate data it was difficult to
+assess the value of the over-dispersion hyperparameters.   It will be valuable in future efforts to 
+have experimental validation of the dispersion levels.   As a point of discussion, note that receptor 
+`CATSEGQGEETQYF`, which has $x=174$ and $y=435$, gets a low `lfdr` (AA-066-betachain), though one wonders
+if this is a candidate for spurious variation.
+
+
+```{r echo=FALSE}
+
+
+# following 08 [ie ordered EBSeq model]
+# but here I will pool data from multiple participants to get a common
+# set of hyperparameters
+
+
+## unpaired lists
+u <- list()
+v <- list()
+## let's try for AA data
+dat <- read.csv("data2/aaSeqCDR3_138_betaChain.csv") # works, 
+u[[1]] <- c(dat[,4])
+v[[1]] <- c(dat[,3])
+dat <- read.csv("data2/aaSeqCDR3_138_alphaChain.csv") # works, 
+u[[2]] <- c(dat[,4])
+v[[2]] <- c(dat[,3])
+dat <- read.csv("data2/aaSeqCDR3_066_betaChain.csv") # works, 
+u[[3]] <- c(dat[,4])
+v[[3]] <- c(dat[,3])
+dat <- read.csv("data2/aaSeqCDR3_066_alphaChain.csv") # 
+u[[4]] <- c(dat[,4])
+v[[4]] <- c(dat[,3])
+
+```
+
+##### Get hyperparameters
+```{r}
+
+xx <- c( unlist(u), unlist(v)) 
+fit <- nlminb( start=rep(2,2), objective=nloglik, lower=rep(1,2), xx=xx )
+
+pars <- fit$par
+print(pars)
+
+```
+
+```{r}
+dat <- read.csv("data2/aaSeqCDR3_066_alphaChain.csv")
+x <- c( dat[,4] ); names(x) <- dat[,2]  ## Control (ARV)
+y <- c( dat[,3] ); names(y) <- dat[,2]  ## enriched (PAP)
+
+out <- getlocalFDR(pars,  x,y )
+tt <- out$results
+knitr::kable( tt, caption="AA-066-alphaChain", digits=3 )
+```
+
+
+```{r}
+dat <- read.csv("data2/aaSeqCDR3_138_alphaChain.csv")
+x <- c( dat[,4] ); names(x) <- dat[,2]  ## Control (ARV)
+y <- c( dat[,3] ); names(y) <- dat[,2]  ## enriched (PAP)
+
+out <- getlocalFDR(pars,  x,y )
+tt <- out$results
+knitr::kable( tt, caption="AA-138-alphaChain" , digits=3)
+```
+
+
+
+```{r}
+dat <- read.csv("data2/aaSeqCDR3_066_betaChain.csv")
+x <- c( dat[,4] ); names(x) <- dat[,2]  ## Control (ARV)
+y <- c( dat[,3] ); names(y) <- dat[,2]  ## enriched (PAP)
+
+out <- getlocalFDR(pars,  x,y )
+tt <- out$results
+knitr::kable( tt, caption="AA-066-betaChain" , digits=3)
+```
+
+
+```{r}
+dat <- read.csv("data2/aaSeqCDR3_138_betaChain.csv")
+x <- c( dat[,4] ); names(x) <- dat[,2]  ## Control (ARV)
+y <- c( dat[,3] ); names(y) <- dat[,2]  ## enriched (PAP)
+
+out <- getlocalFDR(pars,  x,y )
+tt <- out$results
+
+knitr::kable( tt, caption="AA-138-betaChain" , digits=3)
+```
+
+
+
