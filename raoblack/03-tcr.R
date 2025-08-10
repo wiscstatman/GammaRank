@@ -18,8 +18,8 @@ n1 <- sum(dat[,3]) ## PAP
 n2 <- sum( dat[,4] ) ## ARV
 N <- nrow(dat)
 
-B <- 10  ## samples to do RB
-nsim <- 100 ## number of posterior orderings
+B <- 20  ## samples to do RB
+nsim <- 1000 ## number of posterior orderings
 lmarg <- numeric(nsim)
 bst <- numeric(B)
 
@@ -57,3 +57,4 @@ for( isim in 1:nsim )
   print(isim)
  }
  
+save( lmarg, bigO, B, nsim, file="03-v1.RData" )
