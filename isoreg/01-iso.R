@@ -32,7 +32,60 @@ post.rate <- rep(3, length(y))
 
 ## too big...let's try a small one
 
-ok <- rep(FALSE, length(y))
-ok[1:20] <- TRUE
+#ok <- rep(FALSE, length(y))
+#ok[1:25] <- TRUE
+#iso.p <- grankp( post.shape[ok], post.rate[ok] )
+# 25 works
 
-iso.p <- grankp( post.shape[ok], post.rate[ok] )
+## let's do a running average by size-10 window, for starters
+
+
+## whole chain of length n = 162, let's go from i=6 to 157, say i +/-5
+#smp <- numeric( length(y) - 10 )
+#for( i in 6:157 )
+# {
+#  shape.sub <- y[(i-5):(i+5)]
+#  smp[i] <- grankp( shapes=shape.sub, rates=rep(3,11) )
+#  print(i) 
+# }
+### on the yearly scale there's no evidence of monotonicity!
+#plot( smp )
+#abline( h = -lfactorial(11), col="red" )  
+
+
+### maybe if I aggregate ... say over decades...for example
+
+## decadal data..hmm, starting at 1856...
+#iceon10 <- NULL
+#notdone <- TRUE
+#ii <- 1:10
+#d <- 1
+#while( notdone )
+# {
+#   iceon10[d] <- sum(y[ii])
+#   ii <- ii + 10
+#   notdone <- !any( ii > 160 )
+#   d <- d+1
+# }
+#smp2 <- grankp( shapes=(iceon10+1e4)[1:4], rates=rep(13, length(iceon10))[1:4]  )
+## memory problem, even though aggregate data look nicer
+
+
+## let's try 5 year sums
+
+## 5-year data..hmm, starting at 1856...
+iceon5 <- NULL
+notdone <- TRUE
+ii <- 1:5
+d <- 1
+while( notdone )
+ {
+   iceon5[d] <- sum(y[ii])
+   ii <- ii + 5 
+   notdone <- !any( ii > 160 )
+   d <- d+1
+ }
+#smp3 <- grankp( shapes=(iceon5+1000), rates=rep(3, length(iceon5))  )
+## to big
+
+
