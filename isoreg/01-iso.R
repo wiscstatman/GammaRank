@@ -89,3 +89,14 @@ while( notdone )
 ## to big
 
 
+## Isotonic regression seems like a good testbed for gamma-rank probabilities.
+## For Mendota ice-on days and a Poisson model, calculations at the annual level show very little local evidence
+## for monotonicity (computing on +/- 5 year, so 11-year windows).   It might be that whatever warming process
+## happens is not at the annual scale, so aggregating by simple sum, over 5 or 10 year windows retains the Poisson
+## model.  The 10-year data have a pretty stong monotone signal, but computing monotone probabilities becomes
+## too hard globally, for memory overflow....I try again for 5-year data, and again overflow.
+## I could possibly try running windows on the 5-year or decadal data, but not sure, and have not tried yet
+
+## Would be nice to have the code work for larger shapes, or to have an example with smaller counts
+## One idea is the binomial trend test...see ../trend for more
+##
