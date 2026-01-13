@@ -2,3 +2,8 @@
 Trend test with GWAS
 
 https://pmc.ncbi.nlm.nih.gov/articles/PMC3372619/
+
+Page, JASA, 1963
+Ordered Hypotheses for Multiple Treatments: A Significance Test for Linear Ranks
+
+https://www.jstor.org/stable/pdf/2282965.pdf?refreqid=fastly-default%3A126d1575d84992daf6b5c39557eed3c7&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&initiator=&acceptTC=1
